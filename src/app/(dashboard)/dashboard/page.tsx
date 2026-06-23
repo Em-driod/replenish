@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Page, Layout, Card, DataTable, Badge, Text, Banner,
-  EmptyState, Button, BlockStack, InlineStack, Spinner, Divider, Box,
+  Button, BlockStack, InlineStack, Spinner, Divider, Box,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 
@@ -55,7 +55,8 @@ export default function DashboardPage() {
   }
 
   const lowStockRows = lowStock.slice(0, 6).map(p => {
-    const days = p.sales_velocity?.[0]?.days_of_stock_remaining;
+    const daysRaw = p.sales_velocity?.[0]?.days_of_stock_remaining;
+    const days: number | null = daysRaw != null ? Number(daysRaw) : null;
     const stockTone = p.current_inventory === 0 ? "critical" : "warning";
     return [
       <BlockStack key={`t-${p.id}`} gap="050">
@@ -66,7 +67,7 @@ export default function DashboardPage() {
         {p.current_inventory === 0 ? "Out of stock" : `${p.current_inventory} left`}
       </Badge>,
       days != null
-        ? <Badge key={`d-${p.id}`} tone={days <= 7 ? "critical" : days <= 14 ? "warning" : "success"}>{Math.round(days)} days</Badge>
+        ? <Badge key={`d-${p.id}`} tone={days <= 7 ? "critical" : days <= 14 ? "warning" : "success"}>{`${Math.round(days)} days`}</Badge>
         : <Text key={`d-${p.id}`} as="span" tone="subdued">—</Text>,
       p.suppliers?.name ?? <Text key={`s-${p.id}`} as="span" tone="subdued">No supplier</Text>,
       <Button key={`a-${p.id}`} size="slim" onClick={() => router.push("/purchase-orders/new")}>Create PO</Button>,

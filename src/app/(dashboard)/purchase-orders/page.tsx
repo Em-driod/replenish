@@ -123,7 +123,7 @@ export default function PurchaseOrdersPage() {
         open={confirmReceive !== null}
         onClose={() => setConfirmReceive(null)}
         title={`Confirm receipt of ${confirmReceive?.po_number}`}
-        primaryAction={{ content: "Yes, Mark Received", tone: "success", loading: receiving, onAction: () => confirmReceive && markReceived(confirmReceive) }}
+        primaryAction={{ content: "Yes, Mark Received", loading: receiving, onAction: () => confirmReceive && markReceived(confirmReceive) }}
         secondaryActions={[{ content: "Cancel", onAction: () => setConfirmReceive(null) }]}
       >
         <Modal.Section>

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { shopify } from "@/lib/shopify";
-import { createAdminClient } from "@/lib/supabase/server";
 
 // GET /api/auth?shop=mystore.myshopify.com
-// Starts the OAuth flow — redirects merchant to Shopify consent screen
 export async function GET(req: NextRequest) {
   const shop = req.nextUrl.searchParams.get("shop");
 
@@ -16,17 +14,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid shop domain" }, { status: 400 });
   }
 
-  const { url, headers } = await shopify.auth.begin({
-    shop: sanitizedShop,
-    callbackPath: "/api/auth/callback",
-    isOnline: false,
-    rawRequest: req,
-  } as any);
+  const appUrl = process.env.SHOPIFY_APP_URL!;
+  const apiKey = process.env.SHOPIFY_API_KEY!;
+  const scopes = process.env.SHOPIFY_SCOPES!;
+  const redirectUri = `${appUrl}/api/auth/callback`;
 
-  const response = NextResponse.redirect(url);
-  // Forward any cookies set by the Shopify library
-  headers.forEach((value: string, key: string) => {
-    response.headers.set(key, value);
+  const state = crypto.randomUUID();
+  const authUrl =
+    `https://${sanitizedShop}/admin/oauth/authorize` +
+    `?client_id=${apiKey}` +
+    `&scope=${encodeURIComponent(scopes)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${state}`;
+
+  const response = NextResponse.redirect(authUrl);
+  response.cookies.set("shopify_oauth_state", state, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: 300,
   });
 
   return response;

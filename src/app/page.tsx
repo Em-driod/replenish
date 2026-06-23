@@ -1,62 +1,56 @@
-// Root route: if ?shop= is present, kick off OAuth. Otherwise show install landing.
-export default function Home({
+import { redirect } from "next/navigation";
+
+export default async function Home({
   searchParams,
 }: {
-  searchParams: { shop?: string };
+  searchParams: Promise<{ shop?: string; embedded?: string; host?: string; hmac?: string }>;
 }) {
-  const shop = searchParams?.shop;
+  const params = await searchParams;
+  const shop = params?.shop;
+  const embedded = params?.embedded;
+  const host = params?.host;
 
-  if (shop) {
-    // Can't use redirect() here safely with searchParams in server component
-    // The /api/auth route handles the OAuth redirect
+  // Already embedded — send to real dashboard
+  if (embedded === "1" && shop) {
+    const query = host ? `?host=${host}&shop=${shop}` : `?shop=${shop}`;
+    redirect(`/dashboard${query}`);
   }
 
+  // Not installed yet — kick off OAuth (break out of iframe via JS)
+  if (shop) {
+    const authUrl = `/api/auth?shop=${encodeURIComponent(shop)}`;
+    return (
+      <html>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: `window.top.location.href = ${JSON.stringify(authUrl)};` }} />
+        </head>
+        <body style={{ fontFamily: "sans-serif", display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", margin: 0 }}>
+          <p style={{ color: "#6b7280" }}>Redirecting to install…</p>
+        </body>
+      </html>
+    );
+  }
+
+  // Direct visit with no shop — marketing landing page
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md text-center px-6 py-16">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 mb-6">
-          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f9fafb", fontFamily: "sans-serif" }}>
+      <div style={{ maxWidth: 440, textAlign: "center", padding: "40px 24px" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: "#4f46e5", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+          <svg width="32" height="32" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Replenish</h1>
-        <p className="text-gray-500 mb-2 text-lg">
-          Inventory forecasting &amp; purchase orders for Shopify.
-        </p>
-        <p className="text-gray-400 text-sm mb-8">
-          The simplest Stocky replacement — reorder alerts, demand forecasting,
-          and one-click POs to your suppliers.
-        </p>
-
-        {shop ? (
-          <a
-            href={`/api/auth?shop=${shop}`}
-            className="inline-block bg-indigo-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Install Replenish
-          </a>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-700">Plans</p>
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              {[
-                { name: "Free", price: "$0", limit: "100 SKUs" },
-                { name: "Starter", price: "$15/mo", limit: "500 SKUs" },
-                { name: "Growth", price: "$29/mo", limit: "Unlimited" },
-              ].map((plan) => (
-                <div key={plan.name} className="border border-gray-200 rounded-lg p-3 bg-white">
-                  <p className="font-semibold text-gray-900">{plan.name}</p>
-                  <p className="text-indigo-600 font-bold">{plan.price}</p>
-                  <p className="text-gray-400 text-xs mt-1">{plan.limit}</p>
-                </div>
-              ))}
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginBottom: 8 }}>Replenish</h1>
+        <p style={{ color: "#6b7280", marginBottom: 32 }}>Inventory forecasting &amp; purchase orders for Shopify. Install from your Shopify admin.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          {[["Free", "$0", "100 SKUs"], ["Starter", "$15/mo", "500 SKUs"], ["Growth", "$29/mo", "Unlimited"]].map(([name, price, limit]) => (
+            <div key={name} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, background: "white" }}>
+              <p style={{ fontWeight: 600, color: "#111827", margin: "0 0 4px" }}>{name}</p>
+              <p style={{ color: "#4f46e5", fontWeight: 700, margin: "0 0 4px" }}>{price}</p>
+              <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>{limit}</p>
             </div>
-            <p className="text-xs text-gray-400 pt-2">
-              Install from the Shopify App Store to connect your store.
-            </p>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </main>
   );

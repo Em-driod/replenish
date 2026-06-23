@@ -12,10 +12,7 @@ export const shopify = shopifyApi({
   hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ""),
   apiVersion: ApiVersion.January25,
   isEmbeddedApp: true,
-  future: {
-    customerAddressDefaultFixEnabled: false,
-    lineItemBillingCycleFixEnabled: false,
-  },
+  future: {},
 });
 
 export type { Session };

@@ -1,25 +1,50 @@
 "use client";
 
-import { AppProvider } from "@shopify/polaris";
-import { NavMenu } from "@shopify/app-bridge-react";
+import { AppProvider, Frame, Navigation } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import {
+  HomeIcon,
+  ProductIcon,
+  PersonIcon,
+  OrderIcon,
+} from "@shopify/polaris-icons";
 
-interface Props {
-  children: React.ReactNode;
-  shop?: string;
-}
+function Inner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const host = params.get("host") ?? "";
+  const shop = params.get("shop") ?? "";
+  const qs = [host && `host=${host}`, shop && `shop=${shop}`].filter(Boolean).join("&");
+  const q = qs ? `?${qs}` : "";
 
-export default function ShopifyAppProvider({ children, shop }: Props) {
+  const nav = (
+    <Navigation location={pathname}>
+      <Navigation.Section
+        items={[
+          { label: "Dashboard", icon: HomeIcon, url: `/dashboard${q}`, selected: pathname === "/dashboard" },
+          { label: "Products", icon: ProductIcon, url: `/products${q}`, selected: pathname === "/products" },
+          { label: "Suppliers", icon: PersonIcon, url: `/suppliers${q}`, selected: pathname === "/suppliers" },
+          { label: "Purchase Orders", icon: OrderIcon, url: `/purchase-orders${q}`, selected: pathname.startsWith("/purchase-orders") },
+        ]}
+      />
+    </Navigation>
+  );
+
   return (
     <AppProvider i18n={en}>
-      <NavMenu>
-        <a href="/dashboard" rel="home">Dashboard</a>
-        <a href="/products">Products</a>
-        <a href="/suppliers">Suppliers</a>
-        <a href="/purchase-orders">Purchase Orders</a>
-        <a href="/settings">Settings</a>
-      </NavMenu>
-      {children}
+      <Frame navigation={nav}>
+        {children}
+      </Frame>
     </AppProvider>
+  );
+}
+
+export default function ShopifyAppProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<AppProvider i18n={en}><Frame>{children}</Frame></AppProvider>}>
+      <Inner>{children}</Inner>
+    </Suspense>
   );
 }

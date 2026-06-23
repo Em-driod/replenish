@@ -80,13 +80,13 @@ export default function ProductsPage() {
     if (days == null) return <Text as="span" tone="subdued">—</Text>;
     const rounded = Math.round(days);
     const tone = rounded <= 7 ? "critical" : rounded <= 14 ? "warning" : "success";
-    return <Badge tone={tone}>{rounded} days</Badge>;
+    return <Badge tone={tone}>{`${rounded} days`}</Badge>;
   };
 
   const stockBadge = (p: Product) => {
     if (p.current_inventory === 0) return <Badge tone="critical">Out of stock</Badge>;
-    if (p.reorder_point !== null && p.current_inventory <= p.reorder_point) return <Badge tone="warning">{p.current_inventory} left</Badge>;
-    return <Badge tone="success">{p.current_inventory} in stock</Badge>;
+    if (p.reorder_point !== null && p.current_inventory <= p.reorder_point) return <Badge tone="warning">{`${p.current_inventory} left`}</Badge>;
+    return <Badge tone="success">{`${p.current_inventory} in stock`}</Badge>;
   };
 
   const filtered = products.filter(p =>

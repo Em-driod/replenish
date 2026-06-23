@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Page, Card, IndexTable, useIndexResourceState, Button, EmptyState,
+  Page, Card, Button, EmptyState,
   BlockStack, InlineStack, Text, Modal, TextField, Spinner, Banner,
   Badge, Box, Divider,
 } from "@shopify/polaris";

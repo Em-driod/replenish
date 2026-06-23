@@ -124,9 +124,9 @@ export default function NewPOPage() {
                 <Text variant="headingMd" as="h2">Line Items</Text>
                 <Divider />
                 <InlineStack gap="300" blockAlign="end">
-                  <Box style={{ flex: 1 }}>
+                  <div style={{ flex: 1 }}>
                     <Select label="Add product" options={productOptions} value={selectedProduct} onChange={setSelectedProduct} />
-                  </Box>
+                  </div>
                   <Button onClick={addLine} disabled={!selectedProduct}>Add Item</Button>
                 </InlineStack>
 

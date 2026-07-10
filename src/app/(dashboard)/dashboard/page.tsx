@@ -11,11 +11,12 @@ import HeroStat from "@/components/ui/HeroStat";
 import StockGauge from "@/components/ui/StockGauge";
 import PageHeader from "@/components/ui/PageHeader";
 import { useShop, withShop } from "@/lib/useShop";
+import { isAtRiskOfStockout } from "@/lib/risk";
 
 interface Product {
   id: string; title: string; sku: string | null;
   current_inventory: number; reorder_point: number | null;
-  suppliers?: { name: string } | null;
+  suppliers?: { name: string; default_lead_time_days: number | null } | null;
   sales_velocity?: { days_of_stock_remaining: number | null }[];
 }
 interface PO {
@@ -177,7 +178,11 @@ function DashboardPageContent() {
                       </BlockStack>
                       <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
                       {days != null ? (
-                        <Badge tone={days <= 7 ? "critical" : days <= 14 ? "warning" : "success"}>{`${Math.round(days)}d left`}</Badge>
+                        (() => {
+                          const atRisk = isAtRiskOfStockout(days, p.suppliers?.default_lead_time_days);
+                          const tone = atRisk || days <= 7 ? "critical" : days <= 14 ? "warning" : "success";
+                          return <Badge tone={tone}>{atRisk ? `${Math.round(days)}d — before restock` : `${Math.round(days)}d left`}</Badge>;
+                        })()
                       ) : (
                         <Text as="span" tone="subdued">—</Text>
                       )}

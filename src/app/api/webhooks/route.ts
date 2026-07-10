@@ -36,11 +36,20 @@ export async function POST(req: NextRequest) {
       break;
     case "inventory_levels/update":
       if (payload.available !== undefined) {
-        await supabase
+        const { data: updated } = await supabase
           .from("products")
           .update({ current_inventory: payload.available, updated_at: new Date().toISOString() } as any)
           .eq("shop_id", shopRecord.id)
-          .eq("shopify_variant_id", payload.inventory_item_id?.toString());
+          .eq("shopify_inventory_item_id", payload.inventory_item_id?.toString())
+          .select("id")
+          .single();
+
+        if (updated) {
+          await supabase.from("inventory_snapshots").insert({
+            product_id: (updated as { id: string }).id,
+            inventory: payload.available,
+          } as any);
+        }
       }
       break;
     case "app/uninstalled":
@@ -56,6 +65,7 @@ async function handleProductUpsert(supabase: any, shopId: string, product: any) 
     shop_id: shopId,
     shopify_product_id: product.id.toString(),
     shopify_variant_id: v.id.toString(),
+    shopify_inventory_item_id: v.inventory_item_id?.toString() ?? null,
     title: `${product.title}${v.title !== "Default Title" ? ` - ${v.title}` : ""}`,
     sku: v.sku ?? null,
     current_inventory: v.inventory_quantity ?? 0,

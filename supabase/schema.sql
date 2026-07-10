@@ -47,6 +47,7 @@ create table products (
   shop_id               uuid not null references shops(id) on delete cascade,
   shopify_product_id    varchar(50) not null,
   shopify_variant_id    varchar(50) not null,
+  shopify_inventory_item_id varchar(50),
   title                 text not null,
   sku                   varchar(255),
   current_inventory     int not null default 0,
@@ -63,6 +64,7 @@ create table products (
 create index idx_products_shop_id on products(shop_id);
 create index idx_products_below_reorder on products(shop_id, is_tracked)
   where is_tracked = true;
+create index idx_products_inventory_item_id on products(shopify_inventory_item_id);
 
 -- ── SALES VELOCITY ───────────────────────────────────────────
 create table sales_velocity (
@@ -77,6 +79,19 @@ create table sales_velocity (
 );
 
 create index idx_velocity_product_id on sales_velocity(product_id);
+
+-- ── INVENTORY SNAPSHOTS ───────────────────────────────────────
+-- Point-in-time inventory readings, logged on every sync + webhook.
+-- Lets velocity math detect stockout periods and exclude them from
+-- the denominator, instead of treating a stockout as "zero demand."
+create table inventory_snapshots (
+  id            uuid primary key default gen_random_uuid(),
+  product_id    uuid not null references products(id) on delete cascade,
+  inventory     int not null,
+  recorded_at   timestamptz not null default now()
+);
+
+create index idx_inv_snapshots_product_time on inventory_snapshots(product_id, recorded_at desc);
 
 -- ── PURCHASE ORDERS ──────────────────────────────────────────
 create table purchase_orders (
@@ -153,6 +168,7 @@ alter table purchase_orders enable row level security;
 alter table po_line_items enable row level security;
 alter table shopify_sessions enable row level security;
 alter table webhook_events enable row level security;
+alter table inventory_snapshots enable row level security;
 
 -- ── HELPER: Auto-generate PO numbers ──────────────────────────
 create or replace function generate_po_number(p_shop_id uuid)

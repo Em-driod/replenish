@@ -9,12 +9,13 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import StockGauge from "@/components/ui/StockGauge";
 import { useShop, withShop } from "@/lib/useShop";
+import { isAtRiskOfStockout } from "@/lib/risk";
 
 interface Product {
   id: string; title: string; sku: string | null;
   current_inventory: number; reorder_point: number | null;
   reorder_qty: number | null; is_tracked: boolean; supplier_id: string | null;
-  suppliers?: { name: string } | null;
+  suppliers?: { name: string; default_lead_time_days: number | null } | null;
   sales_velocity?: { avg_daily_sales: number; days_of_stock_remaining: number | null }[];
 }
 interface Supplier { id: string; name: string; }
@@ -89,11 +90,16 @@ function ProductsPageContent() {
     load();
   };
 
-  const daysBadge = (days: number | null | undefined) => {
+  const daysBadge = (days: number | null | undefined, leadTimeDays: number | null | undefined) => {
     if (days == null) return <Text as="span" tone="subdued">—</Text>;
     const rounded = Math.round(days);
-    const tone = rounded <= 7 ? "critical" : rounded <= 14 ? "warning" : "success";
-    return <Badge tone={tone}>{`${rounded} days`}</Badge>;
+    const atRisk = isAtRiskOfStockout(days, leadTimeDays);
+    const tone = atRisk || rounded <= 7 ? "critical" : rounded <= 14 ? "warning" : "success";
+    return (
+      <Badge tone={tone}>
+        {atRisk ? `${rounded}d — before restock` : `${rounded} days`}
+      </Badge>
+    );
   };
 
   const filtered = products.filter(p =>
@@ -159,7 +165,7 @@ function ProductsPageContent() {
                     {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
                   </BlockStack>
                   <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
-                  {daysBadge(p.sales_velocity?.[0]?.days_of_stock_remaining)}
+                  {daysBadge(p.sales_velocity?.[0]?.days_of_stock_remaining, p.suppliers?.default_lead_time_days)}
                   <Button size="slim" onClick={() => openEdit(p)}>Configure</Button>
                 </div>
               ))}

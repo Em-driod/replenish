@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("products")
-    .select("*, suppliers(name), sales_velocity(avg_daily_sales, days_of_stock_remaining, period_days)")
+    .select("*, suppliers(name, default_lead_time_days), sales_velocity(avg_daily_sales, days_of_stock_remaining, period_days)")
     .eq("shop_id", ctx.shopId)
     .order("title");
 

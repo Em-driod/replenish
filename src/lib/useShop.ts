@@ -22,10 +22,21 @@ function shopFromHost(host: string): string {
 export function useShop(): string {
   const params = useSearchParams();
   const shopParam = params.get("shop");
-  if (shopParam) return shopParam;
-
   const host = params.get("host");
-  return host ? shopFromHost(host) : "";
+  const resolved = shopParam || (host ? shopFromHost(host) : "");
+
+  if (typeof window !== "undefined" && !resolved) {
+    // Temporary diagnostic: helps pin down why shop resolution failed in a
+    // real embedded install without needing server log access.
+    console.warn("[replenish] could not resolve shop", {
+      shopParam,
+      host,
+      decodedHost: host ? (() => { try { return window.atob(host); } catch { return "<decode failed>"; } })() : null,
+      fullUrl: window.location.href,
+    });
+  }
+
+  return resolved;
 }
 
 /** Appends `?shop=` (or `&shop=`) to an API path using the current shop param. */

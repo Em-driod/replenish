@@ -61,7 +61,10 @@ function ProductsPageContent() {
     try {
       const res = await fetch(withShop("/api/sync", shop), { method: "POST" });
       if (res.ok) { setSuccess("Products synced from Shopify."); load(); }
-      else setError("Sync failed. Check that the store is connected.");
+      else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Sync failed. Check that the store is connected.");
+      }
     } catch { setError("Sync failed."); }
     finally { setSyncing(false); }
   };

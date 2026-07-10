@@ -14,7 +14,7 @@ export type ShopContextResult =
 export async function requireShopId(req: NextRequest): Promise<ShopContextResult> {
   const shop = req.nextUrl.searchParams.get("shop");
   if (!shop || !SHOP_DOMAIN_RE.test(shop)) {
-    return { error: "Missing or invalid shop parameter", status: 400 };
+    return { error: `Missing or invalid shop parameter (received: "${shop ?? ""}")`, status: 400 };
   }
 
   const supabase = createAdminClient();
@@ -26,7 +26,7 @@ export async function requireShopId(req: NextRequest): Promise<ShopContextResult
     .single();
 
   if (!data) {
-    return { error: "Shop is not installed", status: 401 };
+    return { error: `Shop is not installed (resolved shop: "${shop}")`, status: 401 };
   }
 
   return { shopId: (data as { id: string }).id };

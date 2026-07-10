@@ -16,8 +16,14 @@ export async function POST(req: NextRequest) {
 
   if (!shop) return NextResponse.json({ error: "Shop not found" }, { status: 404 });
 
-  await syncProducts(shop.shopify_domain, shop.access_token, shop.id);
-  await computeSalesVelocity(shop.id, shop.shopify_domain, shop.access_token);
+  try {
+    await syncProducts(shop.shopify_domain, shop.access_token, shop.id);
+    await computeSalesVelocity(shop.id, shop.shopify_domain, shop.access_token);
+  } catch (err) {
+    console.error("Sync failed:", err);
+    const message = err instanceof Error ? err.message : "Unknown sync error";
+    return NextResponse.json({ error: `Sync failed: ${message}` }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

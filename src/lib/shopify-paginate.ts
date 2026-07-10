@@ -18,7 +18,10 @@ export async function fetchAllPages<T>(
     const res: Response = await fetch(nextUrl, {
       headers: { "X-Shopify-Access-Token": accessToken },
     });
-    if (!res.ok) break;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Shopify API ${res.status} ${res.statusText} at ${nextUrl}: ${body.slice(0, 300)}`);
+    }
 
     const body = await res.json();
     const items: T[] = body[key] ?? [];

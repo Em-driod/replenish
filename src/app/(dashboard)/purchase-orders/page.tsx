@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import {
   Page, Card, Badge, Button, EmptyState,
   BlockStack, InlineStack, Text, Spinner, Banner, Box, Modal,
@@ -24,6 +24,14 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function PurchaseOrdersPage() {
+  return (
+    <Suspense fallback={<Page title="Purchase Orders"><Box padding="1600"><InlineStack align="center"><Spinner size="large" /></InlineStack></Box></Page>}>
+      <PurchaseOrdersPageContent />
+    </Suspense>
+  );
+}
+
+function PurchaseOrdersPageContent() {
   const [pos, setPOs] = useState<PO[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmReceive, setConfirmReceive] = useState<PO | null>(null);

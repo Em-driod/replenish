@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import {
   Page, Card, Badge, Button, TextField, BlockStack,
   InlineStack, Text, Spinner, EmptyState, Modal, Select, Banner,
@@ -20,6 +20,14 @@ interface Product {
 interface Supplier { id: string; name: string; }
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<Page title="Products"><Box padding="1600"><InlineStack align="center"><Spinner size="large" /></InlineStack></Box></Page>}>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Page, Layout, Card, Select, TextField, Button,
   BlockStack, InlineStack, Text, Banner, Spinner, Divider, Box,
@@ -14,6 +14,14 @@ interface Product { id: string; title: string; sku: string | null; current_inven
 interface LineItem { product_id: string; title: string; sku: string; qty: number; unit_cost: string; }
 
 export default function NewPOPage() {
+  return (
+    <Suspense fallback={<Page title="New Purchase Order"><Box padding="1600"><InlineStack align="center"><Spinner size="large" /></InlineStack></Box></Page>}>
+      <NewPOPageContent />
+    </Suspense>
+  );
+}
+
+function NewPOPageContent() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [supplierId, setSupplierId] = useState("");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Page, Card, DataTable, Badge, Text, Banner,
   Button, BlockStack, InlineStack, Spinner, Divider, Box,
@@ -30,6 +30,14 @@ const STATUS_TONE: Record<string, "info" | "warning" | "success" | "critical" | 
 };
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<Page title="Dashboard"><Box padding="2000"><InlineStack align="center"><Spinner size="large" /></InlineStack></Box></Page>}>
+      <DashboardPageContent />
+    </Suspense>
+  );
+}
+
+function DashboardPageContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [pos, setPOs] = useState<PO[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);

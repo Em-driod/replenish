@@ -1,16 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertShop } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/server";
+import { shopify } from "@/lib/shopify";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
     const code = searchParams.get("code");
-    const shop = searchParams.get("shop");
+    const rawShop = searchParams.get("shop");
     const state = searchParams.get("state");
 
-    if (!code || !shop) {
+    if (!code || !rawShop) {
       return NextResponse.json({ error: "Missing code or shop" }, { status: 400 });
+    }
+
+    const shop = shopify.utils.sanitizeShop(rawShop, false);
+    if (!shop) {
+      return NextResponse.json({ error: "Invalid shop domain" }, { status: 400 });
+    }
+
+    // CSRF protection: state must match the value we set as a cookie in /api/auth
+    const expectedState = req.cookies.get("shopify_oauth_state")?.value;
+    if (!state || !expectedState || state !== expectedState) {
+      return NextResponse.json({ error: "Invalid OAuth state" }, { status: 401 });
+    }
+
+    // Verify the callback request was actually signed by Shopify
+    const isValidHmac = await shopify.utils.validateHmac(Object.fromEntries(searchParams));
+    if (!isValidHmac) {
+      return NextResponse.json({ error: "Invalid HMAC signature" }, { status: 401 });
     }
 
     // Exchange code for access token
@@ -52,7 +70,9 @@ export async function GET(req: NextRequest) {
 
     // Redirect back into the Shopify admin
     const redirectUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}`;
-    return NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(redirectUrl);
+    response.cookies.delete("shopify_oauth_state");
+    return response;
   } catch (error) {
     console.error("OAuth callback error:", error);
     return NextResponse.json({ error: "OAuth failed" }, { status: 500 });

@@ -2,10 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Page, Card, DataTable, Badge, Button, TextField, BlockStack,
+  Page, Card, Badge, Button, TextField, BlockStack,
   InlineStack, Text, Spinner, EmptyState, Modal, Select, Banner,
-  Box, Divider,
+  Box,
 } from "@shopify/polaris";
+import PageHeader from "@/components/ui/PageHeader";
+import StockGauge from "@/components/ui/StockGauge";
+import { useShop, withShop } from "@/lib/useShop";
 
 interface Product {
   id: string; title: string; sku: string | null;
@@ -27,17 +30,19 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ reorder_point: "", reorder_qty: "", supplier_id: "" });
   const [search, setSearch] = useState("");
+  const shop = useShop();
 
   const load = useCallback(async () => {
+    if (!shop) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [pRes, sRes] = await Promise.all([fetch("/api/products"), fetch("/api/suppliers")]);
+      const [pRes, sRes] = await Promise.all([fetch(withShop("/api/products", shop)), fetch(withShop("/api/suppliers", shop))]);
       if (pRes.ok) setProducts(await pRes.json());
       if (sRes.ok) setSuppliers(await sRes.json());
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [shop]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -45,7 +50,7 @@ export default function ProductsPage() {
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch("/api/sync", { method: "POST" });
+      const res = await fetch(withShop("/api/sync", shop), { method: "POST" });
       if (res.ok) { setSuccess("Products synced from Shopify."); load(); }
       else setError("Sync failed. Check that the store is connected.");
     } catch { setError("Sync failed."); }
@@ -60,7 +65,7 @@ export default function ProductsPage() {
   const save = async () => {
     if (!editProduct) return;
     setSaving(true);
-    await fetch(`/api/products/${editProduct.id}`, {
+    await fetch(withShop(`/api/products/${editProduct.id}`, shop), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -83,27 +88,9 @@ export default function ProductsPage() {
     return <Badge tone={tone}>{`${rounded} days`}</Badge>;
   };
 
-  const stockBadge = (p: Product) => {
-    if (p.current_inventory === 0) return <Badge tone="critical">Out of stock</Badge>;
-    if (p.reorder_point !== null && p.current_inventory <= p.reorder_point) return <Badge tone="warning">{`${p.current_inventory} left`}</Badge>;
-    return <Badge tone="success">{`${p.current_inventory} in stock`}</Badge>;
-  };
-
   const filtered = products.filter(p =>
     !search || p.title.toLowerCase().includes(search.toLowerCase()) || (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
   );
-
-  const rows = filtered.map(p => [
-    <BlockStack key={`t-${p.id}`} gap="050">
-      <Text as="span" fontWeight="semibold">{p.title}</Text>
-      {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
-    </BlockStack>,
-    stockBadge(p),
-    p.reorder_point ?? <Text as="span" tone="subdued">Not set</Text>,
-    daysBadge(p.sales_velocity?.[0]?.days_of_stock_remaining),
-    p.suppliers?.name ?? <Text as="span" tone="subdued">—</Text>,
-    <Button key={`e-${p.id}`} size="slim" onClick={() => openEdit(p)}>Configure</Button>,
-  ]);
 
   const supplierOptions = [
     { label: "No supplier assigned", value: "" },
@@ -111,12 +98,14 @@ export default function ProductsPage() {
   ];
 
   return (
-    <Page
-      title="Products"
-      subtitle={products.length > 0 ? `${products.length} products synced` : undefined}
-      primaryAction={{ content: syncing ? "Syncing…" : "Sync from Shopify", onAction: sync, loading: syncing }}
-    >
+    <Page title="">
       <BlockStack gap="400">
+        <PageHeader
+          index="02"
+          title="Products"
+          subtitle={products.length > 0 ? `${products.length} products synced from Shopify` : "Sync your catalog to start tracking stock"}
+          action={<Button variant="primary" loading={syncing} onClick={sync}>{syncing ? "Syncing…" : "Sync from Shopify"}</Button>}
+        />
         {success && <Banner tone="success" title={success} onDismiss={() => setSuccess(null)} />}
         {error && <Banner tone="critical" title={error} onDismiss={() => setError(null)} />}
 
@@ -140,7 +129,7 @@ export default function ProductsPage() {
           ) : products.length === 0 ? (
             <EmptyState
               heading="No products synced yet"
-              image=""
+              image="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"
               action={{ content: "Sync from Shopify", onAction: sync, loading: syncing }}
             >
               <p>Pull your Shopify products into Replenish to track inventory, set reorder points, and get low-stock alerts.</p>
@@ -153,12 +142,20 @@ export default function ProductsPage() {
               </BlockStack>
             </Box>
           ) : (
-            <DataTable
-              columnContentTypes={["text", "text", "numeric", "text", "text", "text"]}
-              headings={["Product", "Stock", "Reorder At", "Days Left", "Supplier", ""]}
-              rows={rows}
-              hoverable
-            />
+            <div className="rp-ledger">
+              {filtered.map((p, i) => (
+                <div className="rp-ledger__row" key={p.id}>
+                  <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                  <BlockStack gap="050">
+                    <Text as="span" fontWeight="semibold">{p.title}</Text>
+                    {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
+                  </BlockStack>
+                  <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
+                  {daysBadge(p.sales_velocity?.[0]?.days_of_stock_remaining)}
+                  <Button size="slim" onClick={() => openEdit(p)}>Configure</Button>
+                </div>
+              ))}
+            </div>
           )}
         </Card>
       </BlockStack>

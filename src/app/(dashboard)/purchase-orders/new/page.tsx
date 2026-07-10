@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import {
-  Page, Layout, Card, Select, TextField, Button, DataTable,
-  BlockStack, InlineStack, Text, Banner, Spinner, Divider, Box, Badge,
+  Page, Layout, Card, Select, TextField, Button,
+  BlockStack, InlineStack, Text, Banner, Spinner, Divider, Box,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
+import PageHeader from "@/components/ui/PageHeader";
+import { useShop, withShop } from "@/lib/useShop";
 
 interface Supplier { id: string; name: string; email: string; }
 interface Product { id: string; title: string; sku: string | null; current_inventory: number; reorder_qty: number | null; }
@@ -24,14 +26,16 @@ export default function NewPOPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const shop = useShop();
 
   useEffect(() => {
-    Promise.all([fetch("/api/suppliers"), fetch("/api/products")]).then(async ([sRes, pRes]) => {
+    if (!shop) { setLoading(false); return; }
+    Promise.all([fetch(withShop("/api/suppliers", shop)), fetch(withShop("/api/products", shop))]).then(async ([sRes, pRes]) => {
       if (sRes.ok) setSuppliers(await sRes.json());
       if (pRes.ok) setProducts(await pRes.json());
       setLoading(false);
     });
-  }, []);
+  }, [shop]);
 
   const addLine = () => {
     const p = products.find(x => x.id === selectedProduct);
@@ -51,7 +55,7 @@ export default function NewPOPage() {
     if (!supplierId) { setError("Please select a supplier."); return; }
     if (lines.length === 0) { setError("Add at least one product."); return; }
     setSubmitting(true); setError(null);
-    const res = await fetch("/api/purchase-orders", {
+    const res = await fetch(withShop("/api/purchase-orders", shop), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -78,24 +82,16 @@ export default function NewPOPage() {
     ...products.filter(p => !lines.find(l => l.product_id === p.id)).map(p => ({ label: `${p.title}${p.sku ? ` (${p.sku})` : ""} — ${p.current_inventory} in stock`, value: p.id })),
   ];
 
-  const lineRows = lines.map((l, i) => [
-    <BlockStack key={`t-${i}`} gap="050">
-      <Text as="span" fontWeight="semibold">{l.title}</Text>
-      {l.sku && <Text as="span" variant="bodySm" tone="subdued">{l.sku}</Text>}
-    </BlockStack>,
-    <TextField key={`q-${i}`} label="" labelHidden type="number" value={l.qty.toString()} onChange={v => updateQty(i, v)} autoComplete="off" />,
-    <TextField key={`c-${i}`} label="" labelHidden type="number" prefix="$" value={l.unit_cost} onChange={v => updateCost(i, v)} autoComplete="off" placeholder="0.00" />,
-    <Text key={`s-${i}`} as="span" fontWeight="semibold">${(l.qty * (parseFloat(l.unit_cost) || 0)).toFixed(2)}</Text>,
-    <Button key={`r-${i}`} size="slim" tone="critical" variant="plain" onClick={() => removeLine(i)}>Remove</Button>,
-  ]);
-
   if (loading) return <Page title="New Purchase Order"><Box padding="1600"><InlineStack align="center"><Spinner size="large" /></InlineStack></Box></Page>;
 
   return (
     <Page
-      title="New Purchase Order"
+      title=""
       backAction={{ content: "Purchase Orders", onAction: () => router.push("/purchase-orders") }}
     >
+      <BlockStack gap="400">
+        <PageHeader index="04.1" title="New Purchase Order" subtitle="Add line items and send directly to your supplier" />
+      </BlockStack>
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
@@ -132,11 +128,21 @@ export default function NewPOPage() {
 
                 {lines.length > 0 ? (
                   <>
-                    <DataTable
-                      columnContentTypes={["text", "numeric", "text", "text", "text"]}
-                      headings={["Product", "Qty", "Unit Cost", "Subtotal", ""]}
-                      rows={lineRows}
-                    />
+                    <div className="rp-ledger">
+                      {lines.map((l, i) => (
+                        <div className="rp-ledger__row" key={l.product_id} style={{ gridTemplateColumns: "auto 1.6fr 0.6fr 0.7fr 0.7fr auto" }}>
+                          <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                          <BlockStack gap="050">
+                            <Text as="span" fontWeight="semibold">{l.title}</Text>
+                            {l.sku && <Text as="span" variant="bodySm" tone="subdued">{l.sku}</Text>}
+                          </BlockStack>
+                          <TextField label="" labelHidden type="number" value={l.qty.toString()} onChange={v => updateQty(i, v)} autoComplete="off" />
+                          <TextField label="" labelHidden type="number" prefix="$" value={l.unit_cost} onChange={v => updateCost(i, v)} autoComplete="off" placeholder="0.00" />
+                          <Text as="span" fontWeight="semibold">${(l.qty * (parseFloat(l.unit_cost) || 0)).toFixed(2)}</Text>
+                          <Button size="slim" tone="critical" variant="plain" onClick={() => removeLine(i)}>Remove</Button>
+                        </div>
+                      ))}
+                    </div>
                     <Divider />
                     <InlineStack align="end">
                       <Text variant="headingLg" as="p">Total: <strong>${total.toFixed(2)}</strong></Text>
@@ -155,9 +161,9 @@ export default function NewPOPage() {
         </Layout.Section>
 
         <Layout.Section variant="oneThird">
-          <Card>
+          <div className="rp-panel-dark">
             <BlockStack gap="400">
-              <Text variant="headingMd" as="h2">Send Order</Text>
+              <span className="rp-panel-dark__label">Send Order</span>
               <Divider />
               <BlockStack gap="200">
                 <Text variant="bodySm" tone="subdued" as="p">
@@ -187,7 +193,7 @@ export default function NewPOPage() {
                 </>
               )}
             </BlockStack>
-          </Card>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>

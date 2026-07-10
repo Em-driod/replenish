@@ -1,25 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { syncProducts } from "@/lib/sync";
+import { requireShopId } from "@/lib/shop-context";
+import { syncProducts, computeSalesVelocity } from "@/lib/sync";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const ctx = await requireShopId(req);
+  if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+
   const supabase = createAdminClient();
-
-  // Get all installed shops
-  const { data: shops } = await supabase
+  const { data: shop } = await supabase
     .from("shops")
     .select("id, shopify_domain, access_token")
-    .is("uninstalled_at", null);
+    .eq("id", ctx.shopId)
+    .single();
 
-  if (!shops || shops.length === 0) {
-    return NextResponse.json({ ok: true, synced: 0 });
-  }
+  if (!shop) return NextResponse.json({ error: "Shop not found" }, { status: 404 });
 
-  await Promise.allSettled(
-    shops.map((shop: any) =>
-      syncProducts(shop.shopify_domain, shop.access_token, shop.id)
-    )
-  );
+  await syncProducts(shop.shopify_domain, shop.access_token, shop.id);
+  await computeSalesVelocity(shop.id, shop.shopify_domain, shop.access_token);
 
-  return NextResponse.json({ ok: true, synced: shops.length });
+  return NextResponse.json({ ok: true });
 }

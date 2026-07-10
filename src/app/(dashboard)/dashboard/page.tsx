@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
-  Page, Layout, Card, DataTable, Badge, Text, Banner,
+  Page, Card, DataTable, Badge, Text, Banner,
   Button, BlockStack, InlineStack, Spinner, Divider, Box,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
+import StatCard from "@/components/ui/StatCard";
+import HeroStat from "@/components/ui/HeroStat";
+import StockGauge from "@/components/ui/StockGauge";
+import PageHeader from "@/components/ui/PageHeader";
+import { useShop, withShop } from "@/lib/useShop";
 
 interface Product {
   id: string; title: string; sku: string | null;
@@ -18,6 +23,7 @@ interface PO {
   created_at: string;
   suppliers?: { name: string } | null;
 }
+interface Supplier { id: string; }
 
 const STATUS_TONE: Record<string, "info" | "warning" | "success" | "critical" | undefined> = {
   draft: undefined, sent: "info", partial: "warning", received: "success", cancelled: "critical",
@@ -26,19 +32,24 @@ const STATUS_TONE: Record<string, "info" | "warning" | "success" | "critical" | 
 export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [pos, setPOs] = useState<PO[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const shop = useShop();
 
   useEffect(() => {
+    if (!shop) { setLoading(false); return; }
     Promise.all([
-      fetch("/api/products").then(r => r.ok ? r.json() : []),
-      fetch("/api/purchase-orders").then(r => r.ok ? r.json() : []),
-    ]).then(([p, po]) => {
+      fetch(withShop("/api/products", shop)).then(r => r.ok ? r.json() : []),
+      fetch(withShop("/api/purchase-orders", shop)).then(r => r.ok ? r.json() : []),
+      fetch(withShop("/api/suppliers", shop)).then(r => r.ok ? r.json() : []),
+    ]).then(([p, po, s]) => {
       setProducts(p);
       setPOs(po);
+      setSuppliers(s);
       setLoading(false);
     });
-  }, []);
+  }, [shop]);
 
   const lowStock = products.filter(p => p.reorder_point !== null && p.current_inventory <= p.reorder_point);
   const outOfStock = lowStock.filter(p => p.current_inventory === 0);
@@ -54,26 +65,6 @@ export default function DashboardPage() {
     );
   }
 
-  const lowStockRows = lowStock.slice(0, 6).map(p => {
-    const daysRaw = p.sales_velocity?.[0]?.days_of_stock_remaining;
-    const days: number | null = daysRaw != null ? Number(daysRaw) : null;
-    const stockTone = p.current_inventory === 0 ? "critical" : "warning";
-    return [
-      <BlockStack key={`t-${p.id}`} gap="050">
-        <Text as="span" variant="bodyMd" fontWeight="semibold">{p.title}</Text>
-        {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
-      </BlockStack>,
-      <Badge key={`b-${p.id}`} tone={stockTone}>
-        {p.current_inventory === 0 ? "Out of stock" : `${p.current_inventory} left`}
-      </Badge>,
-      days != null
-        ? <Badge key={`d-${p.id}`} tone={days <= 7 ? "critical" : days <= 14 ? "warning" : "success"}>{`${Math.round(days)} days`}</Badge>
-        : <Text key={`d-${p.id}`} as="span" tone="subdued">—</Text>,
-      p.suppliers?.name ?? <Text key={`s-${p.id}`} as="span" tone="subdued">No supplier</Text>,
-      <Button key={`a-${p.id}`} size="slim" onClick={() => router.push("/purchase-orders/new")}>Create PO</Button>,
-    ];
-  });
-
   const poRows = openPOs.slice(0, 5).map(po => [
     <Text key={`n-${po.id}`} as="span" fontWeight="semibold">{po.po_number}</Text>,
     po.suppliers?.name ?? "—",
@@ -82,8 +73,10 @@ export default function DashboardPage() {
   ]);
 
   return (
-    <Page title="Dashboard">
+    <Page title="">
       <BlockStack gap="600">
+
+        <PageHeader index="01" title="Dashboard" subtitle="Live inventory health across your store" />
 
         {outOfStock.length > 0 && (
           <Banner
@@ -105,53 +98,51 @@ export default function DashboardPage() {
           </Banner>
         )}
 
-        {/* KPI Cards */}
-        <Layout>
-          <Layout.Section variant="oneThird">
-            <Card>
-              <BlockStack gap="200">
-                <Text variant="bodySm" tone="subdued" as="p">🔴  Low Stock Alerts</Text>
-                <Text variant="heading2xl" as="p" tone={lowStock.length > 0 ? "critical" : undefined}>
-                  {lowStock.length}
-                </Text>
-                <Divider />
-                <Text variant="bodySm" tone="subdued" as="p">
-                  {outOfStock.length > 0 ? `${outOfStock.length} out of stock` : "All stock OK"}
-                </Text>
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
-            <Card>
-              <BlockStack gap="200">
-                <Text variant="bodySm" tone="subdued" as="p">📦  Tracked Products</Text>
-                <Text variant="heading2xl" as="p">{products.length}</Text>
-                <Divider />
-                <Text variant="bodySm" tone="subdued" as="p">synced from Shopify</Text>
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
-            <Card>
-              <BlockStack gap="200">
-                <Text variant="bodySm" tone="subdued" as="p">🛒  Open Purchase Orders</Text>
-                <Text variant="heading2xl" as="p">{openPOs.length}</Text>
-                <Divider />
-                <Text variant="bodySm" tone="subdued" as="p">
-                  {openPOs.filter(p => p.status === "sent").length} sent ·{" "}
-                  {openPOs.filter(p => p.status === "draft").length} draft
-                </Text>
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-        </Layout>
+        {/* Bento grid — hero spans two rows, four supporting cells fill the rest */}
+        <div className="rp-bento">
+          <div className="rp-bento__hero">
+            <HeroStat
+              eyebrow={lowStock.length > 0 ? "Needs attention" : "All clear"}
+              value={lowStock.length}
+              ok={lowStock.length === 0}
+              sub={
+                outOfStock.length > 0
+                  ? `${outOfStock.length} product${outOfStock.length > 1 ? "s are" : " is"} completely out of stock. Restock now to avoid lost sales.`
+                  : lowStock.length > 0
+                  ? "products have dropped to or below their reorder point."
+                  : "No products are below their reorder points right now."
+              }
+              action={
+                lowStock.length > 0 ? (
+                  <Button variant="primary" onClick={() => router.push("/purchase-orders/new")}>Create purchase order</Button>
+                ) : undefined
+              }
+            />
+          </div>
+          <StatCard icon="📦" label="Tracked Products" value={products.length} tone="accent" sub="synced from Shopify" />
+          <StatCard
+            icon="🛒"
+            label="Open Purchase Orders"
+            value={openPOs.length}
+            tone="warn"
+            sub={`${openPOs.filter(p => p.status === "sent").length} sent · ${openPOs.filter(p => p.status === "draft").length} draft`}
+          />
+          <StatCard icon="🚚" label="Suppliers" value={suppliers.length} tone="good" sub="ready to receive orders" />
+          <StatCard
+            icon="✅"
+            label="Stock Health"
+            value={products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
+            tone={lowStock.length === 0 ? "good" : "accent"}
+            sub="of tracked SKUs above reorder point"
+          />
+        </div>
 
         {/* Low Stock Table */}
         <Card>
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
               <BlockStack gap="050">
-                <Text variant="headingMd" as="h2">Low Stock Alerts</Text>
+                <div className="rp-section-heading"><Text variant="headingMd" as="h2">Low Stock Alerts</Text></div>
                 <Text variant="bodySm" tone="subdued" as="p">Products that need reordering soon</Text>
               </BlockStack>
               <Button variant="plain" onClick={() => router.push("/products")}>View all →</Button>
@@ -165,12 +156,28 @@ export default function DashboardPage() {
                 </BlockStack>
               </Box>
             ) : (
-              <DataTable
-                columnContentTypes={["text", "text", "text", "text", "text"]}
-                headings={["Product", "Stock", "Days Left", "Supplier", ""]}
-                rows={lowStockRows}
-                hoverable
-              />
+              <div className="rp-ledger">
+                {lowStock.slice(0, 6).map((p, i) => {
+                  const daysRaw = p.sales_velocity?.[0]?.days_of_stock_remaining;
+                  const days: number | null = daysRaw != null ? Number(daysRaw) : null;
+                  return (
+                    <div className="rp-ledger__row" key={p.id}>
+                      <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                      <BlockStack gap="050">
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">{p.title}</Text>
+                        {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
+                      </BlockStack>
+                      <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
+                      {days != null ? (
+                        <Badge tone={days <= 7 ? "critical" : days <= 14 ? "warning" : "success"}>{`${Math.round(days)}d left`}</Badge>
+                      ) : (
+                        <Text as="span" tone="subdued">—</Text>
+                      )}
+                      <Button size="slim" onClick={() => router.push("/purchase-orders/new")}>Create PO</Button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </BlockStack>
         </Card>
@@ -180,7 +187,7 @@ export default function DashboardPage() {
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
               <BlockStack gap="050">
-                <Text variant="headingMd" as="h2">Purchase Orders</Text>
+                <div className="rp-section-heading"><Text variant="headingMd" as="h2">Purchase Orders</Text></div>
                 <Text variant="bodySm" tone="subdued" as="p">Open and recent orders to suppliers</Text>
               </BlockStack>
               <Button variant="primary" onClick={() => router.push("/purchase-orders/new")}>+ New PO</Button>

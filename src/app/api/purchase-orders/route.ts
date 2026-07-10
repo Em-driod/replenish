@@ -1,51 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { requireShopId } from "@/lib/shop-context";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const ctx = await requireShopId(req);
+  if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("purchase_orders")
     .select("*, suppliers(name, email)")
+    .eq("shop_id", ctx.shopId)
     .order("created_at", { ascending: false });
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
 export async function POST(req: NextRequest) {
+  const ctx = await requireShopId(req);
+  if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+
   const body = await req.json();
   const { supplier_id, expected_delivery_date, notes, send_email, items } = body;
 
   const supabase = createAdminClient();
 
-  // Get supplier
+  // Get supplier — scoped to this shop so a merchant can't reference another shop's supplier
   const { data: supplier } = await supabase
     .from("suppliers")
     .select("*")
     .eq("id", supplier_id)
+    .eq("shop_id", ctx.shopId)
     .single();
 
   if (!supplier) return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
 
-  // Get shop (first installed)
-  const { data: shop } = await supabase
-    .from("shops")
-    .select("id")
-    .is("uninstalled_at", null)
-    .single();
-
-  if (!shop) return NextResponse.json({ error: "No shop found" }, { status: 404 });
-
-  // Generate PO number
-  const { data: poNum } = await supabase.rpc("generate_po_number");
+  // Generate PO number scoped to this shop
+  const { data: poNum, error: poNumError } = await supabase.rpc("generate_po_number", { p_shop_id: ctx.shopId });
+  if (poNumError) return NextResponse.json({ error: poNumError.message }, { status: 500 });
 
   // Create PO
   const { data: po, error: poError } = await supabase
     .from("purchase_orders")
     .insert({
-      shop_id: shop.id,
+      shop_id: ctx.shopId,
       supplier_id,
       po_number: poNum,
       expected_delivery_date: expected_delivery_date ?? null,
@@ -58,7 +60,8 @@ export async function POST(req: NextRequest) {
 
   if (poError) return NextResponse.json({ error: poError.message }, { status: 500 });
 
-  // Add line items
+  // Add line items — look up products scoped to this shop
+  const lineItems: { title: string; sku: string; qty: number; cost: number }[] = [];
   if (items?.length > 0) {
     const lineRows = await Promise.all(
       items.map(async (item: any) => {
@@ -66,14 +69,21 @@ export async function POST(req: NextRequest) {
           .from("products")
           .select("title, sku")
           .eq("id", item.product_id)
+          .eq("shop_id", ctx.shopId)
           .single();
+
+        lineItems.push({
+          title: product?.title ?? "Unknown product",
+          sku: product?.sku ?? "",
+          qty: item.qty_ordered,
+          cost: item.unit_cost ?? 0,
+        });
+
         return {
           po_id: po.id,
           product_id: item.product_id,
           qty_ordered: item.qty_ordered,
           unit_cost: item.unit_cost ?? null,
-          product_title: product?.title ?? "",
-          product_sku: product?.sku ?? "",
         };
       })
     );
@@ -82,18 +92,17 @@ export async function POST(req: NextRequest) {
 
   // Send email via Resend
   if (send_email && supplier.email) {
-    const lineItemsHtml = items
-      .map((item: any, i: number) => {
-        const row = (items as any[])[i];
-        return `<tr>
-          <td style="padding:8px;border-bottom:1px solid #eee">${row.product_title ?? item.product_id}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.qty_ordered}</td>
-          <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${item.unit_cost ? `$${item.unit_cost}` : "—"}</td>
-        </tr>`;
-      })
+    const lineItemsHtml = lineItems
+      .map(
+        (item) => `<tr>
+          <td style="padding:8px;border-bottom:1px solid #eee">${item.title}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.qty}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${item.cost ? `$${item.cost}` : "—"}</td>
+        </tr>`
+      )
       .join("");
 
-    const total = items.reduce((sum: number, item: any) => sum + item.qty_ordered * (item.unit_cost ?? 0), 0);
+    const total = lineItems.reduce((sum, item) => sum + item.qty * item.cost, 0);
 
     await resend.emails.send({
       from: "Replenish <onboarding@resend.dev>",

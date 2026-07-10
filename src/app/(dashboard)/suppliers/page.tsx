@@ -4,8 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Page, Card, Button, EmptyState,
   BlockStack, InlineStack, Text, Modal, TextField, Spinner, Banner,
-  Badge, Box, Divider,
+  Box,
 } from "@shopify/polaris";
+import PageHeader from "@/components/ui/PageHeader";
+import Avatar from "@/components/ui/Avatar";
+import { useShop, withShop } from "@/lib/useShop";
 
 interface Supplier {
   id: string; name: string; email: string;
@@ -25,12 +28,14 @@ export default function SuppliersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const shop = useShop();
 
   const load = useCallback(async () => {
+    if (!shop) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/suppliers");
+      const res = await fetch(withShop("/api/suppliers", shop));
       if (!res.ok) throw new Error(`API error ${res.status}`);
       setSuppliers(await res.json());
     } catch (e: any) {
@@ -38,7 +43,7 @@ export default function SuppliersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [shop]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -55,7 +60,7 @@ export default function SuppliersPage() {
     if (!form.email.trim()) { setFormError("Email address is required."); return; }
     setSaving(true); setFormError(null);
     const payload = { name: form.name.trim(), email: form.email.trim(), notes: form.notes.trim() || null, lead_time_days: form.lead_time_days ? parseInt(form.lead_time_days) : 14 };
-    const url = editing ? `/api/suppliers/${editing.id}` : "/api/suppliers";
+    const url = withShop(editing ? `/api/suppliers/${editing.id}` : "/api/suppliers", shop);
     const method = editing ? "PATCH" : "POST";
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     setSaving(false);
@@ -67,7 +72,7 @@ export default function SuppliersPage() {
 
   const del = async (id: string) => {
     setDeleting(id);
-    await fetch(`/api/suppliers/${id}`, { method: "DELETE" });
+    await fetch(withShop(`/api/suppliers/${id}`, shop), { method: "DELETE" });
     setDeleting(null);
     setSuccess("Supplier removed.");
     load();
@@ -78,8 +83,14 @@ export default function SuppliersPage() {
   });
 
   return (
-    <Page title="Suppliers" primaryAction={{ content: "Add supplier", onAction: openAdd }}>
+    <Page title="">
       <BlockStack gap="400">
+        <PageHeader
+          index="03"
+          title="Suppliers"
+          subtitle={suppliers.length > 0 ? `${suppliers.length} supplier${suppliers.length === 1 ? "" : "s"} on file` : "Add suppliers to send purchase orders directly"}
+          action={<Button variant="primary" onClick={openAdd}>Add supplier</Button>}
+        />
         {success && <Banner tone="success" title={success} onDismiss={() => setSuccess(null)} />}
         {error && <Banner tone="critical" title={`Error: ${error}`} action={{ content: "Retry", onAction: load }} />}
 
@@ -89,35 +100,31 @@ export default function SuppliersPage() {
           ) : suppliers.length === 0 ? (
             <EmptyState
               heading="No suppliers yet"
-              image=""
+              image="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"
               action={{ content: "Add your first supplier", onAction: openAdd }}
             >
               <p>Add suppliers with their email addresses so you can send purchase orders directly from Replenish.</p>
             </EmptyState>
           ) : (
-            <BlockStack gap="0">
+            <div className="rp-ledger">
               {suppliers.map((s, i) => (
-                <Box key={s.id}>
-                  {i > 0 && <Divider />}
-                  <Box padding="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text variant="bodyMd" fontWeight="semibold" as="span">{s.name}</Text>
-                        <Text variant="bodySm" tone="subdued" as="span">{s.email}</Text>
-                        {s.default_lead_time_days && (
-                          <Text variant="bodySm" tone="subdued" as="span">Lead time: {s.default_lead_time_days} days</Text>
-                        )}
-                        {s.notes && <Text variant="bodySm" tone="subdued" as="span">{s.notes}</Text>}
-                      </BlockStack>
-                      <InlineStack gap="200">
-                        <Button size="slim" onClick={() => openEdit(s)}>Edit</Button>
-                        <Button size="slim" tone="critical" loading={deleting === s.id} onClick={() => del(s.id)}>Delete</Button>
-                      </InlineStack>
-                    </InlineStack>
-                  </Box>
-                </Box>
+                <div className="rp-ledger__row" key={s.id} style={{ gridTemplateColumns: "auto auto 1fr auto" }}>
+                  <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                  <Avatar name={s.name} />
+                  <BlockStack gap="050">
+                    <Text variant="bodyMd" fontWeight="semibold" as="span">{s.name}</Text>
+                    <Text variant="bodySm" tone="subdued" as="span">{s.email}</Text>
+                    {s.default_lead_time_days && (
+                      <Text variant="bodySm" tone="subdued" as="span">Lead time: {s.default_lead_time_days} days</Text>
+                    )}
+                  </BlockStack>
+                  <InlineStack gap="200">
+                    <Button size="slim" onClick={() => openEdit(s)}>Edit</Button>
+                    <Button size="slim" tone="critical" loading={deleting === s.id} onClick={() => del(s.id)}>Delete</Button>
+                  </InlineStack>
+                </div>
               ))}
-            </BlockStack>
+            </div>
           )}
         </Card>
       </BlockStack>

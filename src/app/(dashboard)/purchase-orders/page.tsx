@@ -2,10 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Page, Card, DataTable, Badge, Button, EmptyState,
-  BlockStack, InlineStack, Text, Spinner, Banner, Box, Divider, Modal,
+  Page, Card, Badge, Button, EmptyState,
+  BlockStack, InlineStack, Text, Spinner, Banner, Box, Modal,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
+import PageHeader from "@/components/ui/PageHeader";
+import StatCard from "@/components/ui/StatCard";
+import { useShop, withShop } from "@/lib/useShop";
 
 interface PO {
   id: string; po_number: string; status: string;
@@ -28,21 +31,23 @@ export default function PurchaseOrdersPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const shop = useShop();
 
   const load = useCallback(async () => {
+    if (!shop) { setLoading(false); return; }
     setLoading(true);
     try {
-      const res = await fetch("/api/purchase-orders");
+      const res = await fetch(withShop("/api/purchase-orders", shop));
       if (res.ok) setPOs(await res.json());
       else setError("Failed to load purchase orders.");
     } finally { setLoading(false); }
-  }, []);
+  }, [shop]);
 
   useEffect(() => { load(); }, [load]);
 
   const markReceived = async (po: PO) => {
     setReceiving(true);
-    await fetch(`/api/purchase-orders/${po.id}`, {
+    await fetch(withShop(`/api/purchase-orders/${po.id}`, shop), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "received", received_at: new Date().toISOString() }),
@@ -56,45 +61,24 @@ export default function PurchaseOrdersPage() {
   const counts = { draft: 0, sent: 0, received: 0 };
   pos.forEach(p => { if (p.status in counts) counts[p.status as keyof typeof counts]++; });
 
-  const rows = pos.map(po => [
-    <Text key={`n-${po.id}`} as="span" fontWeight="semibold">{po.po_number}</Text>,
-    po.suppliers?.name ?? "—",
-    <Badge key={`s-${po.id}`} tone={STATUS_TONE[po.status]}>{STATUS_LABEL[po.status] ?? po.status}</Badge>,
-    po.expected_delivery_date
-      ? new Date(po.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-      : "—",
-    new Date(po.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    <InlineStack gap="200" key={`a-${po.id}`}>
-      {po.status === "sent" && (
-        <Button size="slim" tone="success" onClick={() => setConfirmReceive(po)}>Mark Received</Button>
-      )}
-    </InlineStack>,
-  ]);
-
   return (
-    <Page
-      title="Purchase Orders"
-      primaryAction={{ content: "+ New Purchase Order", onAction: () => router.push("/purchase-orders/new") }}
-    >
+    <Page title="">
       <BlockStack gap="500">
+        <PageHeader
+          index="04"
+          title="Purchase Orders"
+          subtitle={pos.length > 0 ? `${pos.length} order${pos.length === 1 ? "" : "s"} total` : "Build a PO and email it straight to your supplier"}
+          action={<Button variant="primary" onClick={() => router.push("/purchase-orders/new")}>+ New Purchase Order</Button>}
+        />
         {success && <Banner tone="success" title={success} onDismiss={() => setSuccess(null)} />}
         {error && <Banner tone="critical" title={error} onDismiss={() => setError(null)} />}
 
         {pos.length > 0 && (
-          <InlineStack gap="400">
-            {[
-              { label: "Draft", count: counts.draft, tone: undefined },
-              { label: "Sent to supplier", count: counts.sent, tone: "info" as const },
-              { label: "Received", count: counts.received, tone: "success" as const },
-            ].map(stat => (
-              <Card key={stat.label}>
-                <BlockStack gap="100">
-                  <Text variant="bodySm" tone="subdued" as="p">{stat.label}</Text>
-                  <Text variant="headingXl" as="p">{stat.count}</Text>
-                </BlockStack>
-              </Card>
-            ))}
-          </InlineStack>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+            <StatCard icon="📝" label="Draft" value={counts.draft} tone="accent" sub="not yet sent" />
+            <StatCard icon="📤" label="Sent to Supplier" value={counts.sent} tone="warn" sub="awaiting delivery" />
+            <StatCard icon="✅" label="Received" value={counts.received} tone="good" sub="fulfilled orders" />
+          </div>
         )}
 
         <Card>
@@ -103,18 +87,32 @@ export default function PurchaseOrdersPage() {
           ) : pos.length === 0 ? (
             <EmptyState
               heading="No purchase orders yet"
-              image=""
+              image="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"
               action={{ content: "Create your first PO", onAction: () => router.push("/purchase-orders/new") }}
             >
               <p>Build a purchase order, add line items, and email it directly to your supplier — all in one step.</p>
             </EmptyState>
           ) : (
-            <DataTable
-              columnContentTypes={["text", "text", "text", "text", "text", "text"]}
-              headings={["PO Number", "Supplier", "Status", "Expected Delivery", "Created", ""]}
-              rows={rows}
-              hoverable
-            />
+            <div className="rp-ledger">
+              {pos.map((po, i) => (
+                <div className="rp-ledger__row" key={po.id} style={{ gridTemplateColumns: "auto 1fr 1fr auto auto auto" }}>
+                  <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                  <Text as="span" fontWeight="semibold">{po.po_number}</Text>
+                  <Text as="span" tone="subdued">{po.suppliers?.name ?? "—"}</Text>
+                  <Badge tone={STATUS_TONE[po.status]}>{STATUS_LABEL[po.status] ?? po.status}</Badge>
+                  <Text as="span" tone="subdued">
+                    {po.expected_delivery_date
+                      ? new Date(po.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      : "—"}
+                  </Text>
+                  {po.status === "sent" ? (
+                    <Button size="slim" tone="success" onClick={() => setConfirmReceive(po)}>Mark Received</Button>
+                  ) : (
+                    <span />
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </Card>
       </BlockStack>

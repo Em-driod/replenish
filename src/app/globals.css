@@ -1,26 +1,464 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   Replenish brand layer — overrides Polaris design tokens.
+   Keeps every Polaris component (tables, badges, modals) intact
+   for admin-native behavior, but re-skins color/type/shape so
+   the app doesn't read as a stock Polaris template.
+   ============================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #fafafa;
+  --foreground: #101014;
+
+  --rp-ink: #101014;
+  --rp-ink-soft: #6b6b74;
+  --rp-paper: #fafafa;
+  --rp-paper-raised: #ffffff;
+  --rp-accent: #5b5bf0;
+  --rp-accent-soft: #ecebfe;
+  --rp-accent-deep: #4340d1;
+  --rp-line: #e7e7ea;
+  --rp-good: #14804a;
+  --rp-good-soft: #e2f5ea;
+  --rp-warn: #a05a00;
+  --rp-warn-soft: #fbedd8;
+  --rp-bad: #c62e3d;
+  --rp-bad-soft: #fbe4e6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0c0c0f;
+    --foreground: #f2f2f4;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--rp-paper);
+  color: var(--rp-ink);
+}
+
+/* Re-skin Polaris tokens app-wide */
+.Polaris-Frame,
+[data-portal-id] {
+  --p-font-family-sans: var(--font-brand), "Segoe UI", sans-serif;
+  --p-color-bg: var(--rp-paper);
+  --p-color-bg-surface: var(--rp-paper-raised);
+  --p-color-border-secondary: var(--rp-line);
+  --p-color-text: var(--rp-ink);
+  --p-color-text-secondary: var(--rp-ink-soft);
+  --p-color-bg-fill-brand: var(--rp-accent);
+  --p-color-bg-fill-brand-hover: var(--rp-accent-deep);
+  --p-color-bg-fill-brand-active: var(--rp-accent-deep);
+  --p-color-text-brand: var(--rp-accent-deep);
+  --p-border-radius-200: 10px;
+  --p-border-radius-300: 12px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────
+   White surface, blue accent, no hover overlays — flat and
+   quiet, no default Polaris chrome (logo slot, drop shadows). */
+
+.Polaris-Frame__Navigation {
+  --p-color-bg: #ffffff;
+  --p-color-text: var(--rp-ink);
+}
+
+.rp-sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid var(--rp-line);
+}
+
+.rp-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 20px 18px;
+}
+
+.rp-sidebar__mark {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--rp-accent);
+  color: #fff;
+  font-family: var(--font-brand), sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rp-sidebar__brand-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--rp-ink);
+  letter-spacing: -0.01em;
+}
+
+.rp-sidebar .Polaris-Navigation {
+  background: transparent;
+  padding: 8px 12px;
+}
+
+.rp-sidebar .Polaris-Navigation__Item {
+  border-radius: 0;
+  margin: 0;
+  border-left: 2px solid transparent;
+}
+
+.rp-sidebar .Polaris-Navigation__ItemInnerWrapper {
+  padding-left: 10px;
+  border-radius: 0;
+}
+
+.rp-sidebar .Polaris-Navigation__Text {
+  font-weight: 450;
+  font-size: 13.5px;
+  color: var(--rp-ink-soft);
+}
+
+.rp-sidebar .Polaris-Navigation__Item--selected {
+  border-left: 2px solid var(--rp-accent);
+}
+
+.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__ItemInnerWrapper,
+.rp-sidebar .Polaris-Navigation__ItemInnerWrapper:hover,
+.rp-sidebar .Polaris-Navigation__ItemInnerWrapper:active {
+  background: transparent;
+}
+
+.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__Text {
+  color: var(--rp-accent-deep);
+  font-weight: 600;
+}
+
+.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__Icon svg {
+  fill: var(--rp-accent-deep);
+}
+
+.rp-sidebar .Polaris-Navigation__Icon svg {
+  fill: #9a9aa2;
+}
+
+/* ── Bespoke dashboard components ─────────────────────────── */
+
+/* ── Bento grid (dashboard KPI composition) ───────────────── */
+.rp-bento {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(90px, auto);
+  gap: 14px;
+}
+
+.rp-bento__hero {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+@media (max-width: 900px) {
+  .rp-bento {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .rp-bento__hero {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+}
+
+.rp-stat-card {
+  position: relative;
+  border-radius: 16px;
+  background: var(--rp-paper-raised);
+  border: 1px solid var(--rp-line);
+  padding: 20px 22px 18px;
+  box-shadow: 0 1px 2px rgba(16, 16, 20, 0.03), 0 8px 20px -12px rgba(16, 16, 20, 0.08);
+}
+
+.rp-stat-card__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--rp-ink-soft);
+  text-transform: uppercase;
+}
+
+.rp-stat-card__icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: var(--rp-accent-bar-soft, var(--rp-accent-soft));
+  font-size: 13px;
+}
+
+.rp-stat-card__value {
+  font-family: var(--font-ledger), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 14px;
+  color: var(--rp-ink);
+}
+
+.rp-stat-card__foot {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-stat-card__sub {
+  font-size: 13px;
+  color: var(--rp-ink-soft);
+}
+
+.rp-sparkline {
+  flex-shrink: 0;
+  display: block;
+}
+
+.rp-section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* ── Ledger numeral face ───────────────────────────────────── */
+.rp-num {
+  font-family: var(--font-ledger), monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ── Hero panel (asymmetric dashboard lead) ───────────────── */
+.rp-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--rp-ink);
+  color: var(--rp-paper);
+  padding: 28px 30px;
+  height: 100%;
+  box-shadow: 0 16px 32px -16px rgba(16, 16, 20, 0.35);
+}
+
+.rp-hero::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  right: -10%;
+  width: 60%;
+  height: 220%;
+  background: radial-gradient(closest-side, rgba(91, 91, 240, 0.35), transparent);
+  pointer-events: none;
+}
+
+.rp-hero--ok::before {
+  background: radial-gradient(closest-side, rgba(20, 128, 74, 0.35), transparent);
+}
+
+.rp-hero__eyebrow {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(242, 242, 244, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-hero__eyebrow::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--rp-accent);
+}
+
+.rp-hero--ok .rp-hero__eyebrow::before {
+  background: #38c793;
+}
+
+.rp-hero__value {
+  position: relative;
+  font-family: var(--font-ledger), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 68px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-top: 10px;
+}
+
+.rp-hero__sub {
+  position: relative;
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(242, 242, 244, 0.72);
+  max-width: 46ch;
+}
+
+.rp-hero__action {
+  position: relative;
+  margin-top: 18px;
+}
+
+/* ── Stock gauge (clean fill bar, no ticks) ───────────────── */
+.rp-gauge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rp-gauge__track {
+  position: relative;
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--rp-line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.rp-gauge__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.rp-gauge__reading {
+  font-family: var(--font-ledger), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Ledger rows (replaces plain tables for the low-stock list) */
+.rp-ledger {
+  display: flex;
+  flex-direction: column;
+}
+
+.rp-ledger__row {
+  display: grid;
+  grid-template-columns: auto 1.6fr 1fr 0.8fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 4px;
+  border-top: 1px solid var(--rp-line);
+}
+
+.rp-ledger__row:first-child {
+  border-top: none;
+}
+
+.rp-ledger__index {
+  font-family: var(--font-ledger), monospace;
+  color: var(--rp-ink-soft);
+  font-size: 12px;
+}
+
+/* ── Page header (numbered identity used on every page) ────── */
+.rp-pagehead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 4px;
+}
+
+.rp-pagehead__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.rp-pagehead__index {
+  font-family: var(--font-ledger), monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rp-accent-deep);
+  background: var(--rp-accent-soft);
+  border-radius: 7px;
+  padding: 3px 8px;
+  margin-top: 6px;
+}
+
+.rp-pagehead__title {
+  font-family: var(--font-brand), sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--rp-ink);
+}
+
+.rp-pagehead__subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--rp-ink-soft);
+}
+
+/* ── Avatar (supplier initials) ────────────────────────────── */
+.rp-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-brand), sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Dark accent panel (reused for New PO "send" sidebar) ──── */
+.rp-panel-dark {
+  border-radius: 20px;
+  background: var(--rp-ink);
+  color: var(--rp-paper);
+  padding: 24px;
+}
+
+.rp-panel-dark__label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(242, 242, 244, 0.55);
+}
+
+.rp-panel-dark hr,
+.rp-panel-dark .Polaris-Divider {
+  border-color: rgba(242, 242, 244, 0.14) !important;
+  background-color: rgba(242, 242, 244, 0.14) !important;
+}
+
+.rp-panel-dark .Polaris-Text--root {
+  color: var(--rp-paper);
+}
+
+.rp-panel-dark .Polaris-Text--subdued {
+  color: rgba(242, 242, 244, 0.65) !important;
 }

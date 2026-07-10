@@ -86,6 +86,10 @@ async function registerWebhooks(shop: string, accessToken: string) {
     "products/delete",
     "inventory_levels/update",
     "app/uninstalled",
+    "customers/data_request",
+    "customers/redact",
+    "shop/redact",
+    "app_subscriptions/update",
   ];
 
   const appUrl = process.env.SHOPIFY_APP_URL;

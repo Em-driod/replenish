@@ -74,7 +74,7 @@ function ProductsPageContent() {
   const save = async () => {
     if (!editProduct) return;
     setSaving(true);
-    await fetch(withShop(`/api/products/${editProduct.id}`, shop), {
+    const res = await fetch(withShop(`/api/products/${editProduct.id}`, shop), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -86,6 +86,11 @@ function ProductsPageContent() {
     });
     setSaving(false);
     setEditProduct(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Failed to save product settings.");
+      return;
+    }
     setSuccess("Settings saved.");
     load();
   };

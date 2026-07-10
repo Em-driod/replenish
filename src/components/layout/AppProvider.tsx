@@ -9,6 +9,7 @@ import {
   ProductIcon,
   PersonIcon,
   OrderIcon,
+  CreditCardIcon,
 } from "@shopify/polaris-icons";
 
 function Inner({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ function Inner({ children }: { children: React.ReactNode }) {
             { label: "Products", icon: ProductIcon, url: `/products${q}`, selected: pathname === "/products" },
             { label: "Suppliers", icon: PersonIcon, url: `/suppliers${q}`, selected: pathname === "/suppliers" },
             { label: "Purchase Orders", icon: OrderIcon, url: `/purchase-orders${q}`, selected: pathname.startsWith("/purchase-orders") },
+            { label: "Billing", icon: CreditCardIcon, url: `/settings${q}`, selected: pathname === "/settings" },
           ]}
         />
       </Navigation>

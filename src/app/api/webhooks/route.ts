@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { shopify } from "@/lib/shopify";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getShopByDomain, markShopUninstalled } from "@/lib/db";
+import { planFromSubscriptionName } from "@/lib/billing";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -55,9 +56,39 @@ export async function POST(req: NextRequest) {
     case "app/uninstalled":
       await markShopUninstalled(shop);
       break;
+
+    // ── Mandatory GDPR compliance webhooks (required for App Store approval) ──
+    case "customers/data_request":
+    case "customers/redact":
+      // Replenish never stores customer PII — no customer names, emails, or
+      // order contents, only shop-level product/supplier/PO data — so there
+      // is nothing to export or erase for either of these.
+      break;
+
+    case "shop/redact":
+      // Shopify sends this ~48h after uninstall, requiring full data erasure.
+      await redactShop(supabase, shop);
+      break;
+
+    case "app_subscriptions/update": {
+      // Keeps plan_id in sync when a merchant cancels/downgrades from Shopify's
+      // own billing UI rather than through Replenish.
+      const sub = payload.app_subscription;
+      const planId = sub?.status === "ACTIVE" ? planFromSubscriptionName(sub.name ?? "") : "free";
+      await supabase.from("shops").update({ plan_id: planId } as any).eq("id", shopRecord.id);
+      break;
+    }
   }
 
   return NextResponse.json({ ok: true });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function redactShop(supabase: any, shopDomain: string) {
+  await supabase.from("shopify_sessions").delete().eq("shop", shopDomain);
+  // Cascades to suppliers, products (+ sales_velocity, inventory_snapshots),
+  // purchase_orders (+ po_line_items), and webhook_events via FK constraints.
+  await supabase.from("shops").delete().eq("shopify_domain", shopDomain);
 }
 
 async function handleProductUpsert(supabase: any, shopId: string, product: any) {

@@ -18,12 +18,22 @@ export async function POST(req: NextRequest) {
 
   try {
     await syncProducts(shop.shopify_domain, shop.access_token, shop.id);
-    await computeSalesVelocity(shop.id, shop.shopify_domain, shop.access_token);
   } catch (err) {
-    console.error("Sync failed:", err);
+    console.error("Product sync failed:", err);
     const message = err instanceof Error ? err.message : "Unknown sync error";
-    return NextResponse.json({ error: `Sync failed: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: `Product sync failed: ${message}` }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  // Sales velocity needs orders.json, which requires Protected Customer Data
+  // approval — don't let that block the core product sync if it's not
+  // approved yet, since products/inventory are the more critical data.
+  let velocityWarning: string | null = null;
+  try {
+    await computeSalesVelocity(shop.id, shop.shopify_domain, shop.access_token);
+  } catch (err) {
+    console.error("Sales velocity computation failed:", err);
+    velocityWarning = err instanceof Error ? err.message : "Unknown error computing sales velocity";
+  }
+
+  return NextResponse.json({ ok: true, velocityWarning });
 }

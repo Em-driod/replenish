@@ -58,9 +58,15 @@ function ProductsPageContent() {
     setError(null);
     try {
       const res = await authFetch("/api/sync", { method: "POST" });
-      if (res.ok) { setSuccess("Products synced from Shopify."); load(); }
-      else {
-        const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSuccess(
+          data.velocityWarning
+            ? `Products synced. Sales velocity unavailable: ${data.velocityWarning}`
+            : "Products synced from Shopify."
+        );
+        load();
+      } else {
         setError(data.error ?? "Sync failed. Check that the store is connected.");
       }
     } catch { setError("Sync failed."); }

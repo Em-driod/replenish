@@ -462,3 +462,12 @@ body {
 .rp-panel-dark .Polaris-Text--subdued {
   color: rgba(242, 242, 244, 0.65) !important;
 }
+
+/* Buttons keep their own (light-surface) styling regardless of the dark
+   panel background — undo the text-color override bleeding into their
+   internal label, which was rendering the default (non-primary) button's
+   text as invisible white-on-white. */
+.rp-panel-dark .Polaris-Button .Polaris-Text--root,
+.rp-panel-dark .Polaris-Button .Polaris-Text--subdued {
+  color: revert !important;
+}

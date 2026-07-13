@@ -2,8 +2,8 @@
 
 import { AppProvider, Frame, Navigation } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { usePathname } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import {
   HomeIcon,
   ProductIcon,
@@ -12,11 +12,24 @@ import {
   CreditCardIcon,
 } from "@shopify/polaris-icons";
 
+// Reads straight from window.location rather than useSearchParams(), which
+// goes stale in this embedded app — Shopify's App Bridge drives iframe
+// navigation via the History API directly, and Next's router doesn't always
+// resync its internal search-params state from that.
+function readEmbedParams() {
+  if (typeof window === "undefined") return { host: "", shop: "" };
+  const params = new URLSearchParams(window.location.search);
+  return { host: params.get("host") ?? "", shop: params.get("shop") ?? "" };
+}
+
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const params = useSearchParams();
-  const host = params.get("host") ?? "";
-  const shop = params.get("shop") ?? "";
+  const [{ host, shop }, setEmbedParams] = useState(readEmbedParams);
+
+  useEffect(() => {
+    setEmbedParams(readEmbedParams());
+  }, [pathname]);
+
   const qs = [host && `host=${host}`, shop && `shop=${shop}`].filter(Boolean).join("&");
   const q = qs ? `?${qs}` : "";
 

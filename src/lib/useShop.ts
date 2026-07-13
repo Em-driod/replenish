@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 /**
  * Extracts the shop's *.myshopify.com domain from Shopify's base64 `host`
@@ -10,7 +10,7 @@ import { useSearchParams } from "next/navigation";
  */
 function shopFromHost(host: string): string {
   try {
-    const decoded = typeof window !== "undefined" ? window.atob(host) : Buffer.from(host, "base64").toString("utf-8");
+    const decoded = window.atob(host);
     const domain = decoded.split("/")[0];
     return domain.endsWith(".myshopify.com") ? domain : "";
   } catch {
@@ -18,25 +18,37 @@ function shopFromHost(host: string): string {
   }
 }
 
-/** Reads the current shop's *.myshopify.com domain from the embedded-app URL. */
-export function useShop(): string {
-  const params = useSearchParams();
+/**
+ * Reads shop/host straight from the live browser URL rather than Next's
+ * useSearchParams(), which goes stale in this embedded app: Shopify's App
+ * Bridge drives the iframe's navigation via the History API directly, and
+ * that doesn't always trigger Next's router to resync its internal search
+ * params — window.location.search is always accurate regardless.
+ */
+function parseShopFromLocation(): string {
+  if (typeof window === "undefined") return "";
+
+  const params = new URLSearchParams(window.location.search);
   const shopParam = params.get("shop");
+  if (shopParam) return shopParam;
+
   const host = params.get("host");
-  const resolved = shopParam || (host ? shopFromHost(host) : "");
+  return host ? shopFromHost(host) : "";
+}
 
-  if (typeof window !== "undefined" && !resolved) {
-    // Temporary diagnostic: helps pin down why shop resolution failed in a
-    // real embedded install without needing server log access.
-    console.warn("[replenish] could not resolve shop", {
-      shopParam,
-      host,
-      decodedHost: host ? (() => { try { return window.atob(host); } catch { return "<decode failed>"; } })() : null,
-      fullUrl: window.location.href,
-    });
-  }
+export function useShop(): string {
+  const [shop, setShop] = useState<string>(parseShopFromLocation);
 
-  return resolved;
+  useEffect(() => {
+    const resolved = parseShopFromLocation();
+    setShop(resolved);
+
+    if (!resolved) {
+      console.warn("[replenish] could not resolve shop from window.location", window.location.href);
+    }
+  }, []);
+
+  return shop;
 }
 
 /** Appends `?shop=` (or `&shop=`) to an API path using the current shop param. */

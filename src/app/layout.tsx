@@ -23,6 +23,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${brandFont.variable} ${ledgerFont.variable}`}>
+      <head>
+        {/* App Bridge: establishes the embedded session-token handshake with
+            Shopify's admin shell — the platform-guaranteed way to identify
+            the calling shop, since the iframe URL/referrer don't reliably
+            carry it in Shopify's unified admin.shopify.com embed. */}
+        <script
+          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+          data-api-key={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

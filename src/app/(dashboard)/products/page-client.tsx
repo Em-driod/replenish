@@ -8,7 +8,7 @@ import {
 } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
 import StockGauge from "@/components/ui/StockGauge";
-import { useShop, withShop } from "@/lib/useShop";
+import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
 
 interface Product {
@@ -39,19 +39,17 @@ function ProductsPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ reorder_point: "", reorder_qty: "", supplier_id: "" });
   const [search, setSearch] = useState("");
-  const shop = useShop();
 
   const load = useCallback(async () => {
-    if (!shop) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [pRes, sRes] = await Promise.all([fetch(withShop("/api/products", shop)), fetch(withShop("/api/suppliers", shop))]);
+      const [pRes, sRes] = await Promise.all([authFetch("/api/products"), authFetch("/api/suppliers")]);
       if (pRes.ok) setProducts(await pRes.json());
       if (sRes.ok) setSuppliers(await sRes.json());
     } finally {
       setLoading(false);
     }
-  }, [shop]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -59,7 +57,7 @@ function ProductsPageContent() {
     setSyncing(true);
     setError(null);
     try {
-      const res = await fetch(withShop("/api/sync", shop), { method: "POST" });
+      const res = await authFetch("/api/sync", { method: "POST" });
       if (res.ok) { setSuccess("Products synced from Shopify."); load(); }
       else {
         const data = await res.json().catch(() => ({}));
@@ -77,7 +75,7 @@ function ProductsPageContent() {
   const save = async () => {
     if (!editProduct) return;
     setSaving(true);
-    const res = await fetch(withShop(`/api/products/${editProduct.id}`, shop), {
+    const res = await authFetch(`/api/products/${editProduct.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

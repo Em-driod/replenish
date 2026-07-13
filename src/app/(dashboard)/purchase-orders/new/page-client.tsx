@@ -7,7 +7,7 @@ import {
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
-import { useShop, withShop } from "@/lib/useShop";
+import { authFetch } from "@/lib/authFetch";
 
 interface Supplier { id: string; name: string; email: string; }
 interface Product { id: string; title: string; sku: string | null; current_inventory: number; reorder_qty: number | null; }
@@ -34,16 +34,14 @@ function NewPOPageContent() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const shop = useShop();
 
   useEffect(() => {
-    if (!shop) { setLoading(false); return; }
-    Promise.all([fetch(withShop("/api/suppliers", shop)), fetch(withShop("/api/products", shop))]).then(async ([sRes, pRes]) => {
+    Promise.all([authFetch("/api/suppliers"), authFetch("/api/products")]).then(async ([sRes, pRes]) => {
       if (sRes.ok) setSuppliers(await sRes.json());
       if (pRes.ok) setProducts(await pRes.json());
       setLoading(false);
     });
-  }, [shop]);
+  }, []);
 
   const addLine = () => {
     const p = products.find(x => x.id === selectedProduct);
@@ -63,7 +61,7 @@ function NewPOPageContent() {
     if (!supplierId) { setError("Please select a supplier."); return; }
     if (lines.length === 0) { setError("Add at least one product."); return; }
     setSubmitting(true); setError(null);
-    const res = await fetch(withShop("/api/purchase-orders", shop), {
+    const res = await authFetch("/api/purchase-orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

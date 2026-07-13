@@ -10,7 +10,7 @@ import StatCard from "@/components/ui/StatCard";
 import HeroStat from "@/components/ui/HeroStat";
 import StockGauge from "@/components/ui/StockGauge";
 import PageHeader from "@/components/ui/PageHeader";
-import { useShop, withShop } from "@/lib/useShop";
+import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
 
 interface Product {
@@ -44,21 +44,19 @@ function DashboardPageContent() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const shop = useShop();
 
   useEffect(() => {
-    if (!shop) { setLoading(false); return; }
     Promise.all([
-      fetch(withShop("/api/products", shop)).then(r => r.ok ? r.json() : []),
-      fetch(withShop("/api/purchase-orders", shop)).then(r => r.ok ? r.json() : []),
-      fetch(withShop("/api/suppliers", shop)).then(r => r.ok ? r.json() : []),
+      authFetch("/api/products").then(r => r.ok ? r.json() : []),
+      authFetch("/api/purchase-orders").then(r => r.ok ? r.json() : []),
+      authFetch("/api/suppliers").then(r => r.ok ? r.json() : []),
     ]).then(([p, po, s]) => {
       setProducts(p);
       setPOs(po);
       setSuppliers(s);
       setLoading(false);
     });
-  }, [shop]);
+  }, []);
 
   const lowStock = products.filter(p => p.reorder_point !== null && p.current_inventory <= p.reorder_point);
   const outOfStock = lowStock.filter(p => p.current_inventory === 0);

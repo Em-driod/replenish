@@ -8,7 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
-import { useShop, withShop } from "@/lib/useShop";
+import { authFetch } from "@/lib/authFetch";
 
 interface PO {
   id: string; po_number: string; status: string;
@@ -39,23 +39,21 @@ function PurchaseOrdersPageContent() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const shop = useShop();
 
   const load = useCallback(async () => {
-    if (!shop) { setLoading(false); return; }
     setLoading(true);
     try {
-      const res = await fetch(withShop("/api/purchase-orders", shop));
+      const res = await authFetch("/api/purchase-orders");
       if (res.ok) setPOs(await res.json());
       else setError("Failed to load purchase orders.");
     } finally { setLoading(false); }
-  }, [shop]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const markReceived = async (po: PO) => {
     setReceiving(true);
-    await fetch(withShop(`/api/purchase-orders/${po.id}`, shop), {
+    await authFetch(`/api/purchase-orders/${po.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "received", received_at: new Date().toISOString() }),

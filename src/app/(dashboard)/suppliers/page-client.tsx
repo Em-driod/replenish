@@ -8,7 +8,7 @@ import {
 } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
 import Avatar from "@/components/ui/Avatar";
-import { useShop, withShop } from "@/lib/useShop";
+import { authFetch } from "@/lib/authFetch";
 
 interface Supplier {
   id: string; name: string; email: string;
@@ -36,14 +36,12 @@ function SuppliersPageContent() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const shop = useShop();
 
   const load = useCallback(async () => {
-    if (!shop) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(withShop("/api/suppliers", shop));
+      const res = await authFetch("/api/suppliers");
       if (!res.ok) throw new Error(`API error ${res.status}`);
       setSuppliers(await res.json());
     } catch (e: any) {
@@ -51,7 +49,7 @@ function SuppliersPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [shop]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -68,9 +66,9 @@ function SuppliersPageContent() {
     if (!form.email.trim()) { setFormError("Email address is required."); return; }
     setSaving(true); setFormError(null);
     const payload = { name: form.name.trim(), email: form.email.trim(), notes: form.notes.trim() || null, lead_time_days: form.lead_time_days ? parseInt(form.lead_time_days) : 14 };
-    const url = withShop(editing ? `/api/suppliers/${editing.id}` : "/api/suppliers", shop);
+    const url = editing ? `/api/suppliers/${editing.id}` : "/api/suppliers";
     const method = editing ? "PATCH" : "POST";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await authFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     setSaving(false);
     if (!res.ok) { const d = await res.json(); setFormError(d.error ?? "Failed to save"); return; }
     setModal(null);
@@ -80,7 +78,7 @@ function SuppliersPageContent() {
 
   const del = async (id: string) => {
     setDeleting(id);
-    await fetch(withShop(`/api/suppliers/${id}`, shop), { method: "DELETE" });
+    await authFetch(`/api/suppliers/${id}`, { method: "DELETE" });
     setDeleting(null);
     setSuccess("Supplier removed.");
     load();

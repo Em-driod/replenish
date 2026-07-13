@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { Page, Card, Button, BlockStack, InlineStack, Text, Banner, Spinner, Box, Badge } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
-import { useShop, withShop } from "@/lib/useShop";
+import { authFetch } from "@/lib/authFetch";
 import { PLANS, PlanId } from "@/lib/billing";
 
 interface ShopInfo {
@@ -22,23 +22,21 @@ export default function SettingsPage() {
 }
 
 function SettingsPageContent() {
-  const shop = useShop();
   const [info, setInfo] = useState<ShopInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<PlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!shop) { setLoading(false); return; }
-    fetch(withShop("/api/billing/status", shop))
+    authFetch("/api/billing/status")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { setInfo(data); setLoading(false); });
-  }, [shop]);
+  }, []);
 
   const upgrade = async (plan: Exclude<PlanId, "free">) => {
     setUpgrading(plan);
     setError(null);
-    const res = await fetch(withShop("/api/billing/subscribe", shop), {
+    const res = await authFetch("/api/billing/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan }),

@@ -19,9 +19,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid shop domain" }, { status: 400 });
     }
 
-    // CSRF protection: state must match the value we set as a cookie in /api/auth
+    // CSRF protection: only enforced when our own /api/auth actually set the
+    // cookie. Shopify's managed-install flow (no legacy install flow) redirects
+    // straight to this callback without ever hitting /api/auth, so there's
+    // legitimately no cookie in that case — HMAC verification below is what
+    // actually proves the request came from Shopify either way.
     const expectedState = req.cookies.get("shopify_oauth_state")?.value;
-    if (!state || !expectedState || state !== expectedState) {
+    if (expectedState && state !== expectedState) {
       return NextResponse.json({ error: "Invalid OAuth state" }, { status: 401 });
     }
 

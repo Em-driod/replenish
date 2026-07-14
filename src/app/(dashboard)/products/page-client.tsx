@@ -12,6 +12,7 @@ import StockGauge from "@/components/ui/StockGauge";
 import StampBadge from "@/components/ui/StampBadge";
 import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
+import { computeSuggestedReorder } from "@/lib/reorderSuggestion";
 
 interface Product {
   id: string; title: string; sku: string | null; image_url: string | null;
@@ -20,7 +21,10 @@ interface Product {
   suppliers?: { name: string; default_lead_time_days: number | null } | null;
   sales_velocity?: { avg_daily_sales: number; days_of_stock_remaining: number | null }[];
 }
-interface Supplier { id: string; name: string; }
+interface Supplier { id: string; name: string; default_lead_time_days?: number | null; }
+interface ShopSettings { lead_time_buffer_days: number; forecast_window_days: number; }
+
+const DEFAULT_LEAD_TIME_DAYS = 14;
 
 export default function ProductsPage() {
   return (
@@ -41,13 +45,17 @@ function ProductsPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ reorder_point: "", reorder_qty: "", supplier_id: "" });
   const [search, setSearch] = useState("");
+  const [shopSettings, setShopSettings] = useState<ShopSettings | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [pRes, sRes] = await Promise.all([authFetch("/api/products"), authFetch("/api/suppliers")]);
+      const [pRes, sRes, settingsRes] = await Promise.all([
+        authFetch("/api/products"), authFetch("/api/suppliers"), authFetch("/api/shop-settings"),
+      ]);
       if (pRes.ok) setProducts(await pRes.json());
       if (sRes.ok) setSuppliers(await sRes.json());
+      if (settingsRes.ok) setShopSettings(await settingsRes.json());
     } finally {
       setLoading(false);
     }
@@ -121,6 +129,21 @@ function ProductsPageContent() {
     { label: "No supplier assigned", value: "" },
     ...suppliers.map(s => ({ label: s.name, value: s.id })),
   ];
+
+  const suggestion = editProduct && shopSettings
+    ? computeSuggestedReorder(
+        editProduct.sales_velocity?.[0]?.avg_daily_sales ?? 0,
+        (form.supplier_id ? suppliers.find(s => s.id === form.supplier_id)?.default_lead_time_days : editProduct.suppliers?.default_lead_time_days)
+          ?? DEFAULT_LEAD_TIME_DAYS,
+        shopSettings.lead_time_buffer_days,
+        shopSettings.forecast_window_days
+      )
+    : null;
+
+  const applySuggestion = () => {
+    if (!suggestion) return;
+    setForm(f => ({ ...f, reorder_point: suggestion.reorderPoint.toString(), reorder_qty: suggestion.reorderQty.toString() }));
+  };
 
   return (
     <Page title="">
@@ -209,6 +232,17 @@ function ProductsPageContent() {
           </Modal.Section>
           <Modal.Section>
             <BlockStack gap="400">
+              {suggestion && (
+                <Banner tone="info">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodySm">
+                      Suggested: reorder at <strong>{suggestion.reorderPoint}</strong>, order <strong>{suggestion.reorderQty}</strong> units
+                      — based on {(editProduct.sales_velocity?.[0]?.avg_daily_sales ?? 0).toFixed(2)} units/day and supplier lead time.
+                    </Text>
+                    <Button size="slim" onClick={applySuggestion}>Use suggestion</Button>
+                  </InlineStack>
+                </Banner>
+              )}
               <TextField
                 label="Reorder point (units)"
                 type="number"

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { Page, Card, Button, BlockStack, InlineStack, Text, Banner, Spinner, Box } from "@shopify/polaris";
+import { Page, Card, Button, BlockStack, InlineStack, Text, Banner, Spinner, Box, Checkbox, TextField } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
 import StampBadge from "@/components/ui/StampBadge";
 import { authFetch } from "@/lib/authFetch";
@@ -27,12 +27,36 @@ function SettingsPageContent() {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<PlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [digestEmail, setDigestEmail] = useState("");
+  const [savingDigest, setSavingDigest] = useState(false);
+  const [digestSaved, setDigestSaved] = useState(false);
 
   useEffect(() => {
     authFetch("/api/billing/status")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { setInfo(data); setLoading(false); });
+
+    authFetch("/api/shop-settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setDigestEnabled(data.low_stock_digest_enabled ?? true);
+        setDigestEmail(data.digest_email ?? "");
+      });
   }, []);
+
+  const saveDigestSettings = async () => {
+    setSavingDigest(true);
+    setDigestSaved(false);
+    const res = await authFetch("/api/shop-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ low_stock_digest_enabled: digestEnabled, digest_email: digestEmail || null }),
+    });
+    setSavingDigest(false);
+    if (res.ok) setDigestSaved(true);
+  };
 
   const upgrade = async (plan: Exclude<PlanId, "free">) => {
     setUpgrading(plan);
@@ -105,6 +129,31 @@ function SettingsPageContent() {
             {PLANS[currentPlan].skuLimit != null ? ` of ${PLANS[currentPlan].skuLimit} allowed on your plan.` : "."}
           </Text>
         )}
+
+        <Card>
+          <BlockStack gap="400">
+            <div className="rp-section-heading"><Text variant="headingMd" as="h2">Low Stock Alerts</Text></div>
+            <Text tone="subdued" as="p">Get a daily email summary of products that need reordering, instead of having to check the app.</Text>
+            {digestSaved && <Banner tone="success" title="Alert settings saved." onDismiss={() => setDigestSaved(false)} />}
+            <Checkbox
+              label="Send me a daily low-stock digest email"
+              checked={digestEnabled}
+              onChange={setDigestEnabled}
+            />
+            <TextField
+              label="Send alerts to"
+              type="email"
+              value={digestEmail}
+              onChange={setDigestEmail}
+              autoComplete="off"
+              placeholder="you@yourstore.com"
+              disabled={!digestEnabled}
+            />
+            <InlineStack align="end">
+              <Button variant="primary" loading={savingDigest} onClick={saveDigestSettings}>Save alert settings</Button>
+            </InlineStack>
+          </BlockStack>
+        </Card>
       </BlockStack>
     </Page>
   );

@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ confirmationUrl });
   } catch (err) {
     console.error("Billing subscribe error:", err);
-    return NextResponse.json({ error: "Failed to start subscription" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: `Failed to start subscription: ${message}` }, { status: 500 });
   }
 }

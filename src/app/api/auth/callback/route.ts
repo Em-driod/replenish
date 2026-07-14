@@ -116,15 +116,17 @@ export async function GET(req: NextRequest) {
 }
 
 async function registerWebhooks(shop: string, accessToken: string) {
+  // customers/data_request, customers/redact, and shop/redact are NOT
+  // registered here — Shopify's regular webhooks.json API 404s on them
+  // ("could not find the webhook topic"). Those 3 GDPR compliance topics
+  // are handled entirely via the separate Compliance Webhooks URLs
+  // configured in the Dev Dashboard, which /api/webhooks already handles.
   const topics = [
     "products/create",
     "products/update",
     "products/delete",
     "inventory_levels/update",
     "app/uninstalled",
-    "customers/data_request",
-    "customers/redact",
-    "shop/redact",
     "app_subscriptions/update",
   ];
 

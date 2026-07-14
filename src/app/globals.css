@@ -15,9 +15,9 @@
   --rp-ink-soft: #6b6b74;
   --rp-paper: #fafafa;
   --rp-paper-raised: #ffffff;
-  --rp-accent: #5b5bf0;
-  --rp-accent-soft: #ecebfe;
-  --rp-accent-deep: #4340d1;
+  --rp-accent: #1e6bff;
+  --rp-accent-soft: #e5f0ff;
+  --rp-accent-deep: #0047d6;
   --rp-line: #e7e7ea;
   --rp-good: #14804a;
   --rp-good-soft: #e2f5ea;
@@ -279,7 +279,7 @@ body {
   right: -10%;
   width: 60%;
   height: 220%;
-  background: radial-gradient(closest-side, rgba(91, 91, 240, 0.35), transparent);
+  background: radial-gradient(closest-side, rgba(30, 107, 255, 0.4), transparent);
   pointer-events: none;
 }
 

@@ -1,6 +1,8 @@
+import { Icon } from "@shopify/polaris";
 import Sparkline from "./Sparkline";
 
 type Tone = "accent" | "good" | "warn" | "bad";
+type IconSource = React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 
 const TONE_VARS: Record<Tone, { bar: string; soft: string; line: string }> = {
   accent: { bar: "var(--rp-accent)", soft: "var(--rp-accent-soft)", line: "var(--rp-accent-deep)" },
@@ -10,7 +12,7 @@ const TONE_VARS: Record<Tone, { bar: string; soft: string; line: string }> = {
 };
 
 interface StatCardProps {
-  icon: string;
+  icon: IconSource;
   label: string;
   value: string | number;
   sub?: string;
@@ -26,7 +28,9 @@ export default function StatCard({ icon, label, value, sub, tone = "accent", tre
       style={{ ["--rp-accent-bar" as string]: t.bar, ["--rp-accent-bar-soft" as string]: t.soft }}
     >
       <div className="rp-stat-card__label">
-        <span className="rp-stat-card__icon">{icon}</span>
+        <span className="rp-stat-card__icon" style={{ color: t.bar }}>
+          <Icon source={icon} tone="inherit" />
+        </span>
         {label}
       </div>
       <div className="rp-stat-card__value">{value}</div>

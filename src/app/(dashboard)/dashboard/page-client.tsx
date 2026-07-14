@@ -13,6 +13,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
+import { PackageIcon, CartIcon, PersonIcon, CheckCircleIcon } from "@shopify/polaris-icons";
 
 interface Product {
   id: string; title: string; sku: string | null;
@@ -128,11 +129,11 @@ function DashboardPageContent() {
             />
           </div>
           <Reveal delay={0.05}>
-            <StatCard icon="📦" label="Tracked Products" value={products.length} tone="accent" sub="synced from Shopify" />
+            <StatCard icon={PackageIcon} label="Tracked Products" value={products.length} tone="accent" sub="synced from Shopify" />
           </Reveal>
           <Reveal delay={0.1}>
             <StatCard
-              icon="🛒"
+              icon={CartIcon}
               label="Open Purchase Orders"
               value={openPOs.length}
               tone="warn"
@@ -140,11 +141,11 @@ function DashboardPageContent() {
             />
           </Reveal>
           <Reveal delay={0.15}>
-            <StatCard icon="🚚" label="Suppliers" value={suppliers.length} tone="good" sub="ready to receive orders" />
+            <StatCard icon={PersonIcon} label="Suppliers" value={suppliers.length} tone="good" sub="ready to receive orders" />
           </Reveal>
           <Reveal delay={0.2}>
             <StatCard
-              icon="✅"
+              icon={CheckCircleIcon}
               label="Stock Health"
               value={products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
               tone={lowStock.length === 0 ? "good" : "accent"}
@@ -167,7 +168,7 @@ function DashboardPageContent() {
             {lowStock.length === 0 ? (
               <Box padding="800">
                 <BlockStack gap="200" inlineAlign="center">
-                  <Text variant="headingMd" as="p">✅ All stock levels look good</Text>
+                  <Text variant="headingMd" as="p">All stock levels look good</Text>
                   <Text tone="subdued" as="p">No products are below their reorder points.</Text>
                 </BlockStack>
               </Box>

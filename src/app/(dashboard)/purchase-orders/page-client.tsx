@@ -10,6 +10,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
+import { OrderDraftIcon, SendIcon, CheckCircleIcon } from "@shopify/polaris-icons";
 
 interface PO {
   id: string; po_number: string; status: string;
@@ -82,9 +83,9 @@ function PurchaseOrdersPageContent() {
 
         {pos.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-            <Reveal delay={0.05}><StatCard icon="📝" label="Draft" value={counts.draft} tone="accent" sub="not yet sent" /></Reveal>
-            <Reveal delay={0.1}><StatCard icon="📤" label="Sent to Supplier" value={counts.sent} tone="warn" sub="awaiting delivery" /></Reveal>
-            <Reveal delay={0.15}><StatCard icon="✅" label="Received" value={counts.received} tone="good" sub="fulfilled orders" /></Reveal>
+            <Reveal delay={0.05}><StatCard icon={OrderDraftIcon} label="Draft" value={counts.draft} tone="accent" sub="not yet sent" /></Reveal>
+            <Reveal delay={0.1}><StatCard icon={SendIcon} label="Sent to Supplier" value={counts.sent} tone="warn" sub="awaiting delivery" /></Reveal>
+            <Reveal delay={0.15}><StatCard icon={CheckCircleIcon} label="Received" value={counts.received} tone="good" sub="fulfilled orders" /></Reveal>
           </div>
         )}
 

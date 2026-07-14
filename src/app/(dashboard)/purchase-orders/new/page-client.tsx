@@ -77,8 +77,8 @@ function NewPOPageContent() {
     setSubmitting(false);
     if (!res.ok) { setError(data.error ?? "Failed to create PO."); return; }
     setSuccess(sendEmail
-      ? `✅ ${data.po_number} created and emailed to ${selectedSupplier?.email}.`
-      : `✅ ${data.po_number} saved as draft.`
+      ? `${data.po_number} created and emailed to ${selectedSupplier?.email}.`
+      : `${data.po_number} saved as draft.`
     );
     setLines([]); setSupplierId(""); setNotes(""); setExpectedDate("");
   };

@@ -6,14 +6,13 @@ import {
   Button, BlockStack, InlineStack, Spinner, Divider, Box,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
-import StatCard from "@/components/ui/StatCard";
 import HeroStat from "@/components/ui/HeroStat";
 import StockGauge from "@/components/ui/StockGauge";
+import StampBadge from "@/components/ui/StampBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
-import { PackageIcon, CartIcon, PersonIcon, CheckCircleIcon } from "@shopify/polaris-icons";
 
 interface Product {
   id: string; title: string; sku: string | null;
@@ -107,53 +106,56 @@ function DashboardPageContent() {
           </Banner>
         )}
 
-        {/* Bento grid — hero spans two rows, four supporting cells fill the rest */}
-        <div className="rp-bento">
-          <div className="rp-bento__hero">
-            <HeroStat
-              eyebrow={lowStock.length > 0 ? "Needs attention" : "All clear"}
-              value={lowStock.length}
-              ok={lowStock.length === 0}
-              sub={
-                outOfStock.length > 0
-                  ? `${outOfStock.length} product${outOfStock.length > 1 ? "s are" : " is"} completely out of stock. Restock now to avoid lost sales.`
-                  : lowStock.length > 0
-                  ? "products have dropped to or below their reorder point."
-                  : "No products are below their reorder points right now."
-              }
-              action={
-                lowStock.length > 0 ? (
-                  <Button variant="primary" onClick={() => router.push("/purchase-orders/new")}>Create purchase order</Button>
-                ) : undefined
-              }
-            />
+        {/* Manifest header — status stamp, not a mood-colored gradient tile */}
+        <Reveal>
+          <HeroStat
+            eyebrow="Status"
+            value={lowStock.length}
+            ok={lowStock.length === 0}
+            sub={
+              outOfStock.length > 0
+                ? `${outOfStock.length} product${outOfStock.length > 1 ? "s are" : " is"} completely out of stock. Restock now to avoid lost sales.`
+                : lowStock.length > 0
+                ? "products have dropped to or below their reorder point."
+                : "No products are below their reorder points right now."
+            }
+            action={
+              lowStock.length > 0 ? (
+                <Button variant="primary" onClick={() => router.push("/purchase-orders/new")}>Create purchase order</Button>
+              ) : undefined
+            }
+          />
+        </Reveal>
+
+        {/* Manifest strip — inline counts, barcode-tick dividers */}
+        <Reveal delay={0.05}>
+          <div className="rp-manifest-strip">
+            <div className="rp-manifest-strip__cell">
+              <div className="rp-manifest-strip__label">Tracked Products</div>
+              <div className="rp-manifest-strip__value">{products.length}</div>
+              <div className="rp-manifest-strip__sub">synced from Shopify</div>
+            </div>
+            <div className="rp-manifest-strip__cell">
+              <div className="rp-manifest-strip__label">Open Purchase Orders</div>
+              <div className="rp-manifest-strip__value">{openPOs.length}</div>
+              <div className="rp-manifest-strip__sub">
+                {openPOs.filter(p => p.status === "sent").length} sent · {openPOs.filter(p => p.status === "draft").length} draft
+              </div>
+            </div>
+            <div className="rp-manifest-strip__cell">
+              <div className="rp-manifest-strip__label">Suppliers</div>
+              <div className="rp-manifest-strip__value">{suppliers.length}</div>
+              <div className="rp-manifest-strip__sub">ready to receive orders</div>
+            </div>
+            <div className="rp-manifest-strip__cell">
+              <div className="rp-manifest-strip__label">Stock Health</div>
+              <div className="rp-manifest-strip__value">
+                {products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
+              </div>
+              <div className="rp-manifest-strip__sub">of tracked SKUs above reorder point</div>
+            </div>
           </div>
-          <Reveal delay={0.05}>
-            <StatCard icon={PackageIcon} label="Tracked Products" value={products.length} tone="accent" sub="synced from Shopify" />
-          </Reveal>
-          <Reveal delay={0.1}>
-            <StatCard
-              icon={CartIcon}
-              label="Open Purchase Orders"
-              value={openPOs.length}
-              tone="warn"
-              sub={`${openPOs.filter(p => p.status === "sent").length} sent · ${openPOs.filter(p => p.status === "draft").length} draft`}
-            />
-          </Reveal>
-          <Reveal delay={0.15}>
-            <StatCard icon={PersonIcon} label="Suppliers" value={suppliers.length} tone="good" sub="ready to receive orders" />
-          </Reveal>
-          <Reveal delay={0.2}>
-            <StatCard
-              icon={CheckCircleIcon}
-              label="Stock Health"
-              value={products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
-              tone={lowStock.length === 0 ? "good" : "accent"}
-              sub="of tracked SKUs above reorder point"
-              ringPercent={products.length > 0 ? ((products.length - lowStock.length) / products.length) * 100 : 0}
-            />
-          </Reveal>
-        </div>
+        </Reveal>
 
         {/* Low Stock Table */}
         <Card>
@@ -190,8 +192,9 @@ function DashboardPageContent() {
                         {days != null ? (
                           (() => {
                             const atRisk = isAtRiskOfStockout(days, p.suppliers?.default_lead_time_days);
-                            const tone = atRisk || days <= 7 ? "critical" : days <= 14 ? "warning" : "success";
-                            return <Badge tone={tone}>{atRisk ? `${Math.round(days)}d — before restock` : `${Math.round(days)}d left`}</Badge>;
+                            if (atRisk || days <= 7) return <StampBadge tone="bad">Reorder Now</StampBadge>;
+                            if (days <= 14) return <StampBadge tone="warn">Low Soon</StampBadge>;
+                            return <span className="rp-num" style={{ color: "var(--rp-ink-soft)", fontSize: 13 }}>{`${Math.round(days)}d left`}</span>;
                           })()
                         ) : (
                           <Text as="span" tone="subdued">—</Text>

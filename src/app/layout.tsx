@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, JetBrains_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono, Oswald } from "next/font/google";
 import "@shopify/polaris/build/esm/styles.css";
 import "./globals.css";
 
@@ -15,6 +15,12 @@ const ledgerFont = JetBrains_Mono({
   display: "swap",
 });
 
+const stampFont = Oswald({
+  subsets: ["latin"],
+  variable: "--font-stamp",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Replenish — Inventory & Purchase Orders",
   description: "Simple inventory forecasting and purchase order management for Shopify",
@@ -22,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${brandFont.variable} ${ledgerFont.variable}`}>
+    <html lang="en" className={`${brandFont.variable} ${ledgerFont.variable} ${stampFont.variable}`}>
       <head>
         {/* App Bridge: establishes the embedded session-token handshake with
             Shopify's admin shell — the platform-guaranteed way to identify

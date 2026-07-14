@@ -8,30 +8,32 @@
    ============================================================ */
 
 :root {
-  --background: #fafafa;
-  --foreground: #101014;
+  /* ── Stockroom Manifest palette ──────────────────────────────
+     Every value ties to a real object in a stockroom, not a generic
+     SaaS gradient. Stamp Red is reserved exclusively for "needs
+     action" — it never appears as decoration. */
+  --background: #eef0ec;
+  --foreground: #1b1b18;
 
-  --rp-ink: #101014;
-  --rp-ink-soft: #6b6b74;
-  --rp-paper: #fafafa;
+  --rp-ink: #1b1b18;          /* Ledger Ink */
+  --rp-ink-soft: #6e6a5e;
+  --rp-paper: #eef0ec;        /* Concrete */
   --rp-paper-raised: #ffffff;
-  --rp-accent: #1e6bff;
-  --rp-accent-soft: #e5f0ff;
-  --rp-accent-deep: #0047d6;
-  --rp-line: #e7e7ea;
-  --rp-good: #14804a;
-  --rp-good-soft: #e2f5ea;
-  --rp-warn: #a05a00;
-  --rp-warn-soft: #fbedd8;
-  --rp-bad: #c62e3d;
-  --rp-bad-soft: #fbe4e6;
-}
+  --rp-kraft: #dcd3c0;        /* Kraft/manila surface */
+  --rp-kraft-line: #c9bda3;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0c0c0f;
-    --foreground: #f2f2f4;
-  }
+  --rp-accent: #2c4a7c;       /* Freight Blue — neutral data accent */
+  --rp-accent-soft: #dfe6f0;
+  --rp-accent-deep: #1c3358;
+
+  --rp-good: #1f5c3f;         /* Depot Green — "all clear" only */
+  --rp-good-soft: #dfeee5;
+  --rp-warn: #a3720a;         /* Hazard Yellow (ink-on-paper tone) */
+  --rp-warn-soft: #f7e7bf;
+  --rp-bad: #c1272d;          /* Stamp Red — action required only */
+  --rp-bad-soft: #f7dcdc;
+
+  --rp-line: #d8d4c7;
 }
 
 body {
@@ -164,109 +166,94 @@ body {
 
 /* ── Bespoke dashboard components ─────────────────────────── */
 
-/* ── Bento grid (dashboard KPI composition) ───────────────── */
-.rp-bento {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: minmax(90px, auto);
-  gap: 14px;
+/* ── Manifest strip (replaces the icon-chip bento grid) ────── */
+.rp-manifest-strip {
+  display: flex;
+  align-items: stretch;
+  background: var(--rp-paper-raised);
+  border: 1px solid var(--rp-line);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
-.rp-bento__hero {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-@media (max-width: 900px) {
-  .rp-bento {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 700px) {
+  .rp-manifest-strip {
+    flex-direction: column;
   }
-  .rp-bento__hero {
-    grid-column: span 2;
-    grid-row: span 1;
+  .rp-manifest-strip__cell + .rp-manifest-strip__cell {
+    border-left: none;
+    border-top: 1px dashed var(--rp-kraft-line);
+  }
+  .rp-manifest-strip__cell::before {
+    width: 100%;
+    height: 6px;
+    top: -1px;
+    left: 0;
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--rp-ink) 0px, var(--rp-ink) 2px,
+      transparent 2px, transparent 5px
+    );
+  }
+  .rp-hero {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
-.rp-stat-card {
+.rp-manifest-strip__cell {
+  flex: 1 1 0;
+  padding: 16px 20px;
   position: relative;
-  border-radius: 20px;
-  background: linear-gradient(165deg, var(--rp-accent-bar-soft, var(--rp-accent-soft)) 0%, var(--rp-paper-raised) 65%);
-  border: 1px solid color-mix(in srgb, var(--rp-accent-bar, var(--rp-accent)) 12%, var(--rp-line));
-  padding: 20px 22px 18px;
-  box-shadow: 0 1px 2px rgba(16, 16, 20, 0.03), 0 8px 20px -12px rgba(16, 16, 20, 0.08);
-  transition: transform 0.25s cubic-bezier(0.19, 0.91, 0.38, 1), box-shadow 0.25s ease;
 }
 
-.rp-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 4px rgba(16, 16, 20, 0.05), 0 16px 28px -14px rgba(16, 16, 20, 0.16);
+.rp-manifest-strip__cell + .rp-manifest-strip__cell {
+  border-left: 1px dashed var(--rp-kraft-line);
 }
 
-.rp-stat-card__label {
-  margin-top: 12px;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--rp-ink-soft);
+/* Barcode-tick divider marking each cell boundary */
+.rp-manifest-strip__cell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -1px;
+  width: 6px;
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--rp-ink) 0px, var(--rp-ink) 2px,
+    transparent 2px, transparent 5px
+  );
+  opacity: 0.35;
+}
+
+.rp-manifest-strip__cell:first-child::before {
+  display: none;
+}
+
+.rp-manifest-strip__label {
+  font-family: var(--font-stamp), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--rp-ink-soft);
 }
 
-.rp-stat-card__icon-wrap {
-  position: relative;
-  width: 48px;
-  height: 48px;
-}
-
-.rp-stat-card__ring {
-  position: absolute;
-  inset: 0;
-  width: 48px;
-  height: 48px;
-  transition: stroke-dashoffset 0.6s ease;
-}
-
-.rp-stat-card__icon {
-  position: absolute;
-  inset: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--rp-accent-bar, var(--rp-accent)) 60%, transparent);
-}
-
-.rp-stat-card__icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.rp-stat-card__value {
+.rp-manifest-strip__value {
   font-family: var(--font-ledger), monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 36px;
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-top: 14px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 4px;
   color: var(--rp-ink);
 }
 
-.rp-stat-card__foot {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.rp-stat-card__sub {
-  font-size: 13px;
+.rp-manifest-strip__sub {
+  font-size: 12px;
   color: var(--rp-ink-soft);
-}
-
-.rp-sparkline {
-  flex-shrink: 0;
-  display: block;
+  margin-top: 2px;
 }
 
 .rp-section-heading {
@@ -282,115 +269,83 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* ── Hero panel (asymmetric dashboard lead) ───────────────── */
+/* ── Manifest header (replaces the gradient hero) ──────────── */
 .rp-hero {
   position: relative;
-  overflow: hidden;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #0b1330 0%, #10193d 45%, var(--rp-accent-deep) 130%);
-  color: var(--rp-paper);
-  padding: 30px 32px;
+  border-radius: 16px;
+  background: var(--rp-kraft);
+  border: 1px solid var(--rp-kraft-line);
+  color: var(--rp-ink);
+  padding: 26px 30px;
   height: 100%;
-  box-shadow: 0 20px 40px -18px rgba(0, 40, 130, 0.45);
-}
-
-.rp-hero--ok {
-  background: linear-gradient(135deg, #0a1f18 0%, #0f2b20 45%, var(--rp-good) 145%);
-}
-
-.rp-hero::before {
-  content: "";
-  position: absolute;
-  top: -35%;
-  right: -18%;
-  width: 65%;
-  height: 170%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent 70%);
-  filter: blur(2px);
-  pointer-events: none;
-}
-
-.rp-hero::after {
-  content: "";
-  position: absolute;
-  bottom: -30%;
-  left: -15%;
-  width: 45%;
-  height: 90%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(30, 107, 255, 0.35), transparent 70%);
-  pointer-events: none;
-}
-
-.rp-hero--ok::after {
-  background: radial-gradient(closest-side, rgba(56, 199, 147, 0.3), transparent 70%);
-}
-
-.rp-hero__glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  background: radial-gradient(
-    360px circle at var(--glow-x, 50%) var(--glow-y, 50%),
-    rgba(255, 255, 255, 0.09),
-    transparent 60%
-  );
-}
-
-.rp-hero:hover .rp-hero__glow {
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
 .rp-hero__eyebrow {
-  position: relative;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-family: var(--font-stamp), sans-serif;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(242, 242, 244, 0.6);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rp-hero__eyebrow::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--rp-accent);
-}
-
-.rp-hero--ok .rp-hero__eyebrow::before {
-  background: #38c793;
+  letter-spacing: 0.12em;
+  color: var(--rp-ink-soft);
 }
 
 .rp-hero__value {
-  position: relative;
   font-family: var(--font-ledger), monospace;
   font-variant-numeric: tabular-nums;
-  font-size: 68px;
+  font-size: 56px;
   line-height: 1;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  margin-top: 10px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 6px;
 }
 
 .rp-hero__sub {
-  position: relative;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 14px;
-  color: rgba(242, 242, 244, 0.72);
-  max-width: 46ch;
+  color: var(--rp-ink-soft);
+  max-width: 42ch;
 }
 
 .rp-hero__action {
-  position: relative;
-  margin-top: 18px;
+  margin-top: 16px;
 }
+
+.rp-hero__stamp-slot {
+  flex-shrink: 0;
+}
+
+/* ── Stamp badge (signature status element) ───────────────── */
+.rp-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-stamp), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  transform: rotate(-3deg);
+  white-space: nowrap;
+  animation: rp-stamp-impact 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rp-stamp-impact {
+  0% { transform: rotate(-3deg) scale(1.5); opacity: 0; }
+  60% { transform: rotate(-3deg) scale(0.94); opacity: 1; }
+  100% { transform: rotate(-3deg) scale(1); }
+}
+
+.rp-stamp--good { color: var(--rp-good); }
+.rp-stamp--warn { color: var(--rp-warn); }
+.rp-stamp--bad { color: var(--rp-bad); }
 
 /* ── Stock gauge (clean fill bar, no ticks) ───────────────── */
 .rp-gauge {
@@ -424,7 +379,7 @@ body {
   white-space: nowrap;
 }
 
-/* ── Ledger rows (replaces plain tables for the low-stock list) */
+/* ── Ledger rows — manifest/tear-line treatment ────────────── */
 .rp-ledger {
   display: flex;
   flex-direction: column;
@@ -436,12 +391,12 @@ body {
   align-items: center;
   gap: 16px;
   padding: 14px 4px;
-  border-top: 1px solid var(--rp-line);
+  border-top: 1px dashed var(--rp-kraft-line);
   transition: background-color 0.2s ease, padding-left 0.2s ease;
 }
 
 .rp-ledger__row:hover {
-  background-color: var(--rp-accent-soft);
+  background-color: var(--rp-kraft);
   padding-left: 10px;
   border-radius: 8px;
 }

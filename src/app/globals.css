@@ -80,88 +80,136 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--rp-paper-raised);
   border-right: 1px solid var(--rp-line);
 }
 
 .rp-sidebar__brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 22px 20px 18px;
+  padding: 20px 18px 16px;
+  border-bottom: 1px dashed var(--rp-kraft-line);
 }
 
-.rp-sidebar__mark {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  border-radius: 6px;
-  background: var(--rp-accent);
-  color: #fff;
+.rp-sidebar__store {
   font-family: var(--font-brand), sans-serif;
-  font-weight: 800;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rp-sidebar__brand-name {
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--rp-ink);
   letter-spacing: -0.01em;
 }
 
-.rp-sidebar .Polaris-Navigation {
-  background: transparent;
-  padding: 8px 14px;
-}
-
-.rp-sidebar .Polaris-Navigation__Item {
-  border-radius: 12px;
-  margin: 3px 0;
-  border-left: none;
-}
-
-.rp-sidebar .Polaris-Navigation__ItemInnerWrapper {
-  padding: 9px 12px;
-  border-radius: 12px;
-  transition: background-color 0.2s ease;
-}
-
-.rp-sidebar .Polaris-Navigation__Text {
+.rp-sidebar__health {
+  display: inline-flex;
+  margin-top: 8px;
+  font-family: var(--font-stamp), sans-serif;
+  font-size: 10.5px;
   font-weight: 500;
-  font-size: 13.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1.5px solid currentColor;
+}
+
+.rp-sidebar__health--good { color: var(--rp-good); }
+.rp-sidebar__health--bad { color: var(--rp-bad); }
+
+.rp-sidebar__nav {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rp-sidebar__nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rp-sidebar__divider {
+  margin: 12px 6px;
+  border-top: 1px dashed var(--rp-kraft-line);
+}
+
+/* Manifest row: label left, status tag right, barcode-tick active marker */
+.rp-navrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.rp-navrow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--rp-ink) 0px, var(--rp-ink) 2px,
+    transparent 2px, transparent 4px
+  );
+  transition: height 0.15s ease;
+}
+
+.rp-navrow:hover {
+  background: var(--rp-kraft);
+}
+
+.rp-navrow:focus-visible {
+  outline: 2px solid var(--rp-accent);
+  outline-offset: -2px;
+}
+
+.rp-navrow--active::before {
+  height: 22px;
+}
+
+.rp-navrow__label {
+  font-family: var(--font-stamp), sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--rp-ink-soft);
 }
 
-.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__ItemInnerWrapper {
-  background: var(--rp-accent);
-  box-shadow: 0 8px 16px -8px rgba(30, 107, 255, 0.55);
-}
-
-.rp-sidebar .Polaris-Navigation__ItemInnerWrapper:hover,
-.rp-sidebar .Polaris-Navigation__ItemInnerWrapper:active {
-  background: var(--rp-accent-soft);
-}
-
-.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__ItemInnerWrapper:hover {
-  background: var(--rp-accent);
-}
-
-.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__Text {
-  color: #fff;
+.rp-navrow--active .rp-navrow__label {
+  color: var(--rp-ink);
   font-weight: 600;
 }
 
-.rp-sidebar .Polaris-Navigation__Item--selected .Polaris-Navigation__Icon svg {
-  fill: #fff;
+.rp-navrow__tag {
+  font-family: var(--font-ledger), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rp-bad);
+  background: var(--rp-bad-soft);
+  border-radius: 3px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  animation: rp-tag-in 0.2s ease;
 }
 
-.rp-sidebar .Polaris-Navigation__Icon svg {
-  fill: #9a9aa2;
-  transition: fill 0.2s ease;
+@keyframes rp-tag-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.rp-navrow--secondary .rp-navrow__label {
+  color: var(--rp-ink-soft);
+  font-weight: 450;
 }
 
 /* ── Bespoke dashboard components ─────────────────────────── */

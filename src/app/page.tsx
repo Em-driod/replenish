@@ -51,6 +51,9 @@ export default async function Home({
             </div>
           ))}
         </div>
+        <p style={{ marginTop: 32, fontSize: 12, color: "#9ca3af" }}>
+          <a href="/privacy" style={{ color: "#9ca3af" }}>Privacy Policy</a>
+        </p>
       </div>
     </main>
   );

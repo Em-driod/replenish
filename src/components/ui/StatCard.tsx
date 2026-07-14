@@ -18,21 +18,37 @@ interface StatCardProps {
   sub?: string;
   tone?: Tone;
   trend?: number[];
+  /** 0-100: draws a progress ring around the icon bubble instead of a flat fill. */
+  ringPercent?: number;
 }
 
-export default function StatCard({ icon, label, value, sub, tone = "accent", trend }: StatCardProps) {
+export default function StatCard({ icon, label, value, sub, tone = "accent", trend, ringPercent }: StatCardProps) {
   const t = TONE_VARS[tone];
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const offset = ringPercent != null ? circumference - (ringPercent / 100) * circumference : 0;
+
   return (
     <div
       className="rp-stat-card"
       style={{ ["--rp-accent-bar" as string]: t.bar, ["--rp-accent-bar-soft" as string]: t.soft }}
     >
-      <div className="rp-stat-card__label">
+      <div className="rp-stat-card__icon-wrap">
+        {ringPercent != null && (
+          <svg className="rp-stat-card__ring" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r={radius} fill="none" stroke="var(--rp-line)" strokeWidth="3" />
+            <circle
+              cx="24" cy="24" r={radius} fill="none" stroke={t.bar} strokeWidth="3"
+              strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+              transform="rotate(-90 24 24)"
+            />
+          </svg>
+        )}
         <span className="rp-stat-card__icon" style={{ color: t.bar }}>
           <Icon source={icon} tone="inherit" />
         </span>
-        {label}
       </div>
+      <div className="rp-stat-card__label">{label}</div>
       <div className="rp-stat-card__value">{value}</div>
       <div className="rp-stat-card__foot">
         {sub && <span className="rp-stat-card__sub">{sub}</span>}

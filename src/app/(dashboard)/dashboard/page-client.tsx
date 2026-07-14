@@ -150,6 +150,7 @@ function DashboardPageContent() {
               value={products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
               tone={lowStock.length === 0 ? "good" : "accent"}
               sub="of tracked SKUs above reorder point"
+              ringPercent={products.length > 0 ? ((products.length - lowStock.length) / products.length) * 100 : 0}
             />
           </Reveal>
         </div>

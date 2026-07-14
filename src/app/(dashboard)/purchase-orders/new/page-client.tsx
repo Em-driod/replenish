@@ -7,6 +7,7 @@ import {
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
+import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
 
 interface Supplier { id: string; name: string; email: string; }
@@ -136,17 +137,19 @@ function NewPOPageContent() {
                   <>
                     <div className="rp-ledger">
                       {lines.map((l, i) => (
-                        <div className="rp-ledger__row" key={l.product_id} style={{ gridTemplateColumns: "auto 1.6fr 0.6fr 0.7fr 0.7fr auto" }}>
-                          <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
-                          <BlockStack gap="050">
-                            <Text as="span" fontWeight="semibold">{l.title}</Text>
-                            {l.sku && <Text as="span" variant="bodySm" tone="subdued">{l.sku}</Text>}
-                          </BlockStack>
-                          <TextField label="" labelHidden type="number" value={l.qty.toString()} onChange={v => updateQty(i, v)} autoComplete="off" />
-                          <TextField label="" labelHidden type="number" prefix="$" value={l.unit_cost} onChange={v => updateCost(i, v)} autoComplete="off" placeholder="0.00" />
-                          <Text as="span" fontWeight="semibold">${(l.qty * (parseFloat(l.unit_cost) || 0)).toFixed(2)}</Text>
-                          <Button size="slim" tone="critical" variant="plain" onClick={() => removeLine(i)}>Remove</Button>
-                        </div>
+                        <Reveal key={l.product_id}>
+                          <div className="rp-ledger__row" style={{ gridTemplateColumns: "auto 1.6fr 0.6fr 0.7fr 0.7fr auto" }}>
+                            <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                            <BlockStack gap="050">
+                              <Text as="span" fontWeight="semibold">{l.title}</Text>
+                              {l.sku && <Text as="span" variant="bodySm" tone="subdued">{l.sku}</Text>}
+                            </BlockStack>
+                            <TextField label="" labelHidden type="number" value={l.qty.toString()} onChange={v => updateQty(i, v)} autoComplete="off" />
+                            <TextField label="" labelHidden type="number" prefix="$" value={l.unit_cost} onChange={v => updateCost(i, v)} autoComplete="off" placeholder="0.00" />
+                            <Text as="span" fontWeight="semibold">${(l.qty * (parseFloat(l.unit_cost) || 0)).toFixed(2)}</Text>
+                            <Button size="slim" tone="critical" variant="plain" onClick={() => removeLine(i)}>Remove</Button>
+                          </div>
+                        </Reveal>
                       ))}
                     </div>
                     <Divider />

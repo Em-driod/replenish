@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
+import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
 
 interface PO {
@@ -81,9 +82,9 @@ function PurchaseOrdersPageContent() {
 
         {pos.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-            <StatCard icon="📝" label="Draft" value={counts.draft} tone="accent" sub="not yet sent" />
-            <StatCard icon="📤" label="Sent to Supplier" value={counts.sent} tone="warn" sub="awaiting delivery" />
-            <StatCard icon="✅" label="Received" value={counts.received} tone="good" sub="fulfilled orders" />
+            <Reveal delay={0.05}><StatCard icon="📝" label="Draft" value={counts.draft} tone="accent" sub="not yet sent" /></Reveal>
+            <Reveal delay={0.1}><StatCard icon="📤" label="Sent to Supplier" value={counts.sent} tone="warn" sub="awaiting delivery" /></Reveal>
+            <Reveal delay={0.15}><StatCard icon="✅" label="Received" value={counts.received} tone="good" sub="fulfilled orders" /></Reveal>
           </div>
         )}
 
@@ -101,22 +102,24 @@ function PurchaseOrdersPageContent() {
           ) : (
             <div className="rp-ledger">
               {pos.map((po, i) => (
-                <div className="rp-ledger__row" key={po.id} style={{ gridTemplateColumns: "auto 1fr 1fr auto auto auto" }}>
-                  <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
-                  <Text as="span" fontWeight="semibold">{po.po_number}</Text>
-                  <Text as="span" tone="subdued">{po.suppliers?.name ?? "—"}</Text>
-                  <Badge tone={STATUS_TONE[po.status]}>{STATUS_LABEL[po.status] ?? po.status}</Badge>
-                  <Text as="span" tone="subdued">
-                    {po.expected_delivery_date
-                      ? new Date(po.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                      : "—"}
-                  </Text>
-                  {po.status === "sent" ? (
-                    <Button size="slim" tone="success" onClick={() => setConfirmReceive(po)}>Mark Received</Button>
-                  ) : (
-                    <span />
-                  )}
-                </div>
+                <Reveal key={po.id} delay={Math.min(i * 0.05, 0.5)}>
+                  <div className="rp-ledger__row" style={{ gridTemplateColumns: "auto 1fr 1fr auto auto auto" }}>
+                    <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                    <Text as="span" fontWeight="semibold">{po.po_number}</Text>
+                    <Text as="span" tone="subdued">{po.suppliers?.name ?? "—"}</Text>
+                    <Badge tone={STATUS_TONE[po.status]}>{STATUS_LABEL[po.status] ?? po.status}</Badge>
+                    <Text as="span" tone="subdued">
+                      {po.expected_delivery_date
+                        ? new Date(po.expected_delivery_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                        : "—"}
+                    </Text>
+                    {po.status === "sent" ? (
+                      <Button size="slim" tone="success" onClick={() => setConfirmReceive(po)}>Mark Received</Button>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+                </Reveal>
               ))}
             </div>
           )}

@@ -10,6 +10,7 @@ import StatCard from "@/components/ui/StatCard";
 import HeroStat from "@/components/ui/HeroStat";
 import StockGauge from "@/components/ui/StockGauge";
 import PageHeader from "@/components/ui/PageHeader";
+import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
 
@@ -126,22 +127,30 @@ function DashboardPageContent() {
               }
             />
           </div>
-          <StatCard icon="📦" label="Tracked Products" value={products.length} tone="accent" sub="synced from Shopify" />
-          <StatCard
-            icon="🛒"
-            label="Open Purchase Orders"
-            value={openPOs.length}
-            tone="warn"
-            sub={`${openPOs.filter(p => p.status === "sent").length} sent · ${openPOs.filter(p => p.status === "draft").length} draft`}
-          />
-          <StatCard icon="🚚" label="Suppliers" value={suppliers.length} tone="good" sub="ready to receive orders" />
-          <StatCard
-            icon="✅"
-            label="Stock Health"
-            value={products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
-            tone={lowStock.length === 0 ? "good" : "accent"}
-            sub="of tracked SKUs above reorder point"
-          />
+          <Reveal delay={0.05}>
+            <StatCard icon="📦" label="Tracked Products" value={products.length} tone="accent" sub="synced from Shopify" />
+          </Reveal>
+          <Reveal delay={0.1}>
+            <StatCard
+              icon="🛒"
+              label="Open Purchase Orders"
+              value={openPOs.length}
+              tone="warn"
+              sub={`${openPOs.filter(p => p.status === "sent").length} sent · ${openPOs.filter(p => p.status === "draft").length} draft`}
+            />
+          </Reveal>
+          <Reveal delay={0.15}>
+            <StatCard icon="🚚" label="Suppliers" value={suppliers.length} tone="good" sub="ready to receive orders" />
+          </Reveal>
+          <Reveal delay={0.2}>
+            <StatCard
+              icon="✅"
+              label="Stock Health"
+              value={products.length > 0 ? `${Math.round(((products.length - lowStock.length) / products.length) * 100)}%` : "—"}
+              tone={lowStock.length === 0 ? "good" : "accent"}
+              sub="of tracked SKUs above reorder point"
+            />
+          </Reveal>
         </div>
 
         {/* Low Stock Table */}
@@ -168,24 +177,26 @@ function DashboardPageContent() {
                   const daysRaw = p.sales_velocity?.[0]?.days_of_stock_remaining;
                   const days: number | null = daysRaw != null ? Number(daysRaw) : null;
                   return (
-                    <div className="rp-ledger__row" key={p.id}>
-                      <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
-                      <BlockStack gap="050">
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">{p.title}</Text>
-                        {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
-                      </BlockStack>
-                      <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
-                      {days != null ? (
-                        (() => {
-                          const atRisk = isAtRiskOfStockout(days, p.suppliers?.default_lead_time_days);
-                          const tone = atRisk || days <= 7 ? "critical" : days <= 14 ? "warning" : "success";
-                          return <Badge tone={tone}>{atRisk ? `${Math.round(days)}d — before restock` : `${Math.round(days)}d left`}</Badge>;
-                        })()
-                      ) : (
-                        <Text as="span" tone="subdued">—</Text>
-                      )}
-                      <Button size="slim" onClick={() => router.push("/purchase-orders/new")}>Create PO</Button>
-                    </div>
+                    <Reveal key={p.id} delay={i * 0.04}>
+                      <div className="rp-ledger__row">
+                        <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                        <BlockStack gap="050">
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">{p.title}</Text>
+                          {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
+                        </BlockStack>
+                        <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
+                        {days != null ? (
+                          (() => {
+                            const atRisk = isAtRiskOfStockout(days, p.suppliers?.default_lead_time_days);
+                            const tone = atRisk || days <= 7 ? "critical" : days <= 14 ? "warning" : "success";
+                            return <Badge tone={tone}>{atRisk ? `${Math.round(days)}d — before restock` : `${Math.round(days)}d left`}</Badge>;
+                          })()
+                        ) : (
+                          <Text as="span" tone="subdued">—</Text>
+                        )}
+                        <Button size="slim" onClick={() => router.push("/purchase-orders/new")}>Create PO</Button>
+                      </div>
+                    </Reveal>
                   );
                 })}
               </div>

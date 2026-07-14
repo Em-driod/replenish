@@ -8,6 +8,7 @@ import {
 } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
 import Avatar from "@/components/ui/Avatar";
+import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
 
 interface Supplier {
@@ -114,21 +115,23 @@ function SuppliersPageContent() {
           ) : (
             <div className="rp-ledger">
               {suppliers.map((s, i) => (
-                <div className="rp-ledger__row" key={s.id} style={{ gridTemplateColumns: "auto auto 1fr auto" }}>
-                  <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
-                  <Avatar name={s.name} />
-                  <BlockStack gap="050">
-                    <Text variant="bodyMd" fontWeight="semibold" as="span">{s.name}</Text>
-                    <Text variant="bodySm" tone="subdued" as="span">{s.email}</Text>
-                    {s.default_lead_time_days && (
-                      <Text variant="bodySm" tone="subdued" as="span">Lead time: {s.default_lead_time_days} days</Text>
-                    )}
-                  </BlockStack>
-                  <InlineStack gap="200">
-                    <Button size="slim" onClick={() => openEdit(s)}>Edit</Button>
-                    <Button size="slim" tone="critical" loading={deleting === s.id} onClick={() => del(s.id)}>Delete</Button>
-                  </InlineStack>
-                </div>
+                <Reveal key={s.id} delay={Math.min(i * 0.05, 0.5)}>
+                  <div className="rp-ledger__row" style={{ gridTemplateColumns: "auto auto 1fr auto" }}>
+                    <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                    <Avatar name={s.name} />
+                    <BlockStack gap="050">
+                      <Text variant="bodyMd" fontWeight="semibold" as="span">{s.name}</Text>
+                      <Text variant="bodySm" tone="subdued" as="span">{s.email}</Text>
+                      {s.default_lead_time_days && (
+                        <Text variant="bodySm" tone="subdued" as="span">Lead time: {s.default_lead_time_days} days</Text>
+                      )}
+                    </BlockStack>
+                    <InlineStack gap="200">
+                      <Button size="slim" onClick={() => openEdit(s)}>Edit</Button>
+                      <Button size="slim" tone="critical" loading={deleting === s.id} onClick={() => del(s.id)}>Delete</Button>
+                    </InlineStack>
+                  </div>
+                </Reveal>
               ))}
             </div>
           )}

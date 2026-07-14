@@ -7,6 +7,7 @@ import {
   Box,
 } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
+import Reveal from "@/components/ui/Reveal";
 import StockGauge from "@/components/ui/StockGauge";
 import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
@@ -170,16 +171,18 @@ function ProductsPageContent() {
           ) : (
             <div className="rp-ledger">
               {filtered.map((p, i) => (
-                <div className="rp-ledger__row" key={p.id}>
-                  <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
-                  <BlockStack gap="050">
-                    <Text as="span" fontWeight="semibold">{p.title}</Text>
-                    {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
-                  </BlockStack>
-                  <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
-                  {daysBadge(p.sales_velocity?.[0]?.days_of_stock_remaining, p.suppliers?.default_lead_time_days)}
-                  <Button size="slim" onClick={() => openEdit(p)}>Configure</Button>
-                </div>
+                <Reveal key={p.id} delay={Math.min(i * 0.03, 0.5)}>
+                  <div className="rp-ledger__row">
+                    <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                    <BlockStack gap="050">
+                      <Text as="span" fontWeight="semibold">{p.title}</Text>
+                      {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}
+                    </BlockStack>
+                    <StockGauge current={p.current_inventory} reorderPoint={p.reorder_point} />
+                    {daysBadge(p.sales_velocity?.[0]?.days_of_stock_remaining, p.suppliers?.default_lead_time_days)}
+                    <Button size="slim" onClick={() => openEdit(p)}>Configure</Button>
+                  </div>
+                </Reveal>
               ))}
             </div>
           )}

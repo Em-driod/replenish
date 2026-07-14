@@ -11,13 +11,21 @@ interface ShopifyVariant {
   sku: string | null;
   inventory_quantity: number;
   inventory_item_id: number;
+  image_id?: number | null;
   cost?: string;
+}
+
+interface ShopifyImage {
+  id: number;
+  src: string;
 }
 
 interface ShopifyProduct {
   id: number;
   title: string;
   variants: ShopifyVariant[];
+  image?: ShopifyImage | null;
+  images?: ShopifyImage[];
 }
 
 interface ShopifyLineItem {
@@ -35,24 +43,28 @@ export async function syncProducts(shop: string, accessToken: string, shopDbId: 
   const supabase = createAdminClient();
 
   const products = await fetchAllPages<ShopifyProduct>(
-    `https://${shop}/admin/api/2025-01/products.json?limit=250&fields=id,title,variants`,
+    `https://${shop}/admin/api/2025-01/products.json?limit=250&fields=id,title,variants,image,images`,
     accessToken,
     "products"
   );
 
-  const rows = products.flatMap((p) =>
-    p.variants.map((v) => ({
+  const rows = products.flatMap((p) => {
+    const imagesById = new Map((p.images ?? []).map((img) => [img.id, img.src]));
+    const defaultImage = p.image?.src ?? p.images?.[0]?.src ?? null;
+
+    return p.variants.map((v) => ({
       shop_id: shopDbId,
       shopify_product_id: p.id.toString(),
       shopify_variant_id: v.id.toString(),
       shopify_inventory_item_id: v.inventory_item_id?.toString() ?? null,
+      image_url: (v.image_id != null ? imagesById.get(v.image_id) : null) ?? defaultImage,
       title: `${p.title}${v.title !== "Default Title" ? ` - ${v.title}` : ""}`,
       sku: v.sku ?? null,
       current_inventory: v.inventory_quantity ?? 0,
       cost_per_unit: v.cost ? parseFloat(v.cost) : null,
       updated_at: new Date().toISOString(),
-    }))
-  );
+    }));
+  });
 
   if (rows.length === 0) return;
 

@@ -44,7 +44,7 @@ export default function StatCard({ icon, label, value, sub, tone = "accent", tre
             />
           </svg>
         )}
-        <span className="rp-stat-card__icon" style={{ color: t.bar }}>
+        <span className="rp-stat-card__icon" style={{ background: t.bar, color: "#fff" }}>
           <Icon source={icon} tone="inherit" />
         </span>
       </div>

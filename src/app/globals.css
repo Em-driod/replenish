@@ -190,8 +190,8 @@ body {
 .rp-stat-card {
   position: relative;
   border-radius: 20px;
-  background: var(--rp-paper-raised);
-  border: 1px solid var(--rp-line);
+  background: linear-gradient(165deg, var(--rp-accent-bar-soft, var(--rp-accent-soft)) 0%, var(--rp-paper-raised) 65%);
+  border: 1px solid color-mix(in srgb, var(--rp-accent-bar, var(--rp-accent)) 12%, var(--rp-line));
   padding: 20px 22px 18px;
   box-shadow: 0 1px 2px rgba(16, 16, 20, 0.03), 0 8px 20px -12px rgba(16, 16, 20, 0.08);
   transition: transform 0.25s cubic-bezier(0.19, 0.91, 0.38, 1), box-shadow 0.25s ease;
@@ -232,7 +232,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--rp-accent-bar-soft, var(--rp-accent-soft));
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--rp-accent-bar, var(--rp-accent)) 60%, transparent);
 }
 
 .rp-stat-card__icon svg {
@@ -454,6 +454,19 @@ body {
   font-family: var(--font-ledger), monospace;
   color: var(--rp-ink-soft);
   font-size: 12px;
+}
+
+.rp-product-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--rp-line);
+  flex-shrink: 0;
+}
+
+.rp-product-thumb--empty {
+  background: linear-gradient(135deg, var(--rp-line), var(--rp-paper));
 }
 
 /* ── Page header (numbered identity used on every page) ────── */

@@ -13,7 +13,7 @@ import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
 
 interface Product {
-  id: string; title: string; sku: string | null;
+  id: string; title: string; sku: string | null; image_url: string | null;
   current_inventory: number; reorder_point: number | null;
   reorder_qty: number | null; is_tracked: boolean; supplier_id: string | null;
   suppliers?: { name: string; default_lead_time_days: number | null } | null;
@@ -172,8 +172,13 @@ function ProductsPageContent() {
             <div className="rp-ledger">
               {filtered.map((p, i) => (
                 <Reveal key={p.id} delay={Math.min(i * 0.03, 0.5)}>
-                  <div className="rp-ledger__row">
+                  <div className="rp-ledger__row" style={{ gridTemplateColumns: "auto 44px 1.6fr 1fr 0.8fr auto" }}>
                     <span className="rp-ledger__index">{String(i + 1).padStart(2, "0")}</span>
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" className="rp-product-thumb" />
+                    ) : (
+                      <div className="rp-product-thumb rp-product-thumb--empty" />
+                    )}
                     <BlockStack gap="050">
                       <Text as="span" fontWeight="semibold">{p.title}</Text>
                       {p.sku && <Text as="span" variant="bodySm" tone="subdued">{p.sku}</Text>}

@@ -92,11 +92,15 @@ async function redactShop(supabase: any, shopDomain: string) {
 }
 
 async function handleProductUpsert(supabase: any, shopId: string, product: any) {
+  const imagesById = new Map((product.images ?? []).map((img: any) => [img.id, img.src]));
+  const defaultImage = product.image?.src ?? product.images?.[0]?.src ?? null;
+
   const rows = (product.variants ?? []).map((v: any) => ({
     shop_id: shopId,
     shopify_product_id: product.id.toString(),
     shopify_variant_id: v.id.toString(),
     shopify_inventory_item_id: v.inventory_item_id?.toString() ?? null,
+    image_url: (v.image_id != null ? imagesById.get(v.image_id) : null) ?? defaultImage,
     title: `${product.title}${v.title !== "Default Title" ? ` - ${v.title}` : ""}`,
     sku: v.sku ?? null,
     current_inventory: v.inventory_quantity ?? 0,

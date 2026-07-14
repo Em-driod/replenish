@@ -48,6 +48,7 @@ create table products (
   shopify_product_id    varchar(50) not null,
   shopify_variant_id    varchar(50) not null,
   shopify_inventory_item_id varchar(50),
+  image_url             text,
   title                 text not null,
   sku                   varchar(255),
   current_inventory     int not null default 0,

@@ -92,7 +92,17 @@ export async function GET(req: NextRequest) {
       { onConflict: "id" }
     );
 
-    registerWebhooks(shop, access_token).catch(console.error);
+    // Must be awaited, not fire-and-forget: Vercel's serverless runtime can
+    // freeze/terminate the function right after the response is sent,
+    // killing any in-flight unawaited work — which is why webhook
+    // registration (including app/uninstalled) was silently never
+    // completing before.
+    try {
+      await registerWebhooks(shop, access_token);
+      await trace("webhooks_registered", shop);
+    } catch (webhookErr) {
+      await trace("webhook_registration_failed", webhookErr instanceof Error ? webhookErr.message : String(webhookErr));
+    }
 
     const redirectUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}`;
     const response = NextResponse.redirect(redirectUrl);
@@ -120,9 +130,9 @@ async function registerWebhooks(shop: string, accessToken: string) {
 
   const appUrl = process.env.SHOPIFY_APP_URL;
 
-  await Promise.allSettled(
-    topics.map((topic) =>
-      fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
+  const results = await Promise.allSettled(
+    topics.map(async (topic) => {
+      const res = await fetch(`https://${shop}/admin/api/2025-01/webhooks.json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +141,18 @@ async function registerWebhooks(shop: string, accessToken: string) {
         body: JSON.stringify({
           webhook: { topic, address: `${appUrl}/api/webhooks`, format: "json" },
         }),
-      })
-    )
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`${topic}: ${res.status} ${body.slice(0, 150)}`);
+      }
+      return topic;
+    })
   );
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      await trace("webhook_topic_failed", result.reason instanceof Error ? result.reason.message : String(result.reason));
+    }
+  }
 }

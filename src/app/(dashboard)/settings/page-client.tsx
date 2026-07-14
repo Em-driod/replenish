@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { Page, Card, Button, BlockStack, InlineStack, Text, Banner, Spinner, Box, Badge } from "@shopify/polaris";
+import { Page, Card, Button, BlockStack, InlineStack, Text, Banner, Spinner, Box } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
+import StampBadge from "@/components/ui/StampBadge";
 import { authFetch } from "@/lib/authFetch";
 import { PLANS, PlanId } from "@/lib/billing";
 
@@ -73,7 +74,7 @@ function SettingsPageContent() {
                 <BlockStack gap="300">
                   <InlineStack align="space-between" blockAlign="center">
                     <Text variant="headingMd" as="h2">{plan.name}</Text>
-                    {isCurrent && <Badge tone="success">Current plan</Badge>}
+                    {isCurrent && <StampBadge tone="good">Current Plan</StampBadge>}
                   </InlineStack>
                   <Text variant="heading2xl" as="p">
                     {plan.price === 0 ? "Free" : `$${plan.price}`}

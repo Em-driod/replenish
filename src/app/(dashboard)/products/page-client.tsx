@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import {
-  Page, Card, Badge, Button, TextField, BlockStack,
+  Page, Card, Button, TextField, BlockStack,
   InlineStack, Text, Spinner, EmptyState, Modal, Select, Banner,
   Box,
 } from "@shopify/polaris";
 import PageHeader from "@/components/ui/PageHeader";
 import Reveal from "@/components/ui/Reveal";
 import StockGauge from "@/components/ui/StockGauge";
+import StampBadge from "@/components/ui/StampBadge";
 import { authFetch } from "@/lib/authFetch";
 import { isAtRiskOfStockout } from "@/lib/risk";
 
@@ -107,12 +108,9 @@ function ProductsPageContent() {
     if (days == null) return <Text as="span" tone="subdued">—</Text>;
     const rounded = Math.round(days);
     const atRisk = isAtRiskOfStockout(days, leadTimeDays);
-    const tone = atRisk || rounded <= 7 ? "critical" : rounded <= 14 ? "warning" : "success";
-    return (
-      <Badge tone={tone}>
-        {atRisk ? `${rounded}d — before restock` : `${rounded} days`}
-      </Badge>
-    );
+    if (atRisk || rounded <= 7) return <StampBadge tone="bad">Reorder Now</StampBadge>;
+    if (rounded <= 14) return <StampBadge tone="warn">Low Soon</StampBadge>;
+    return <span className="rp-num" style={{ color: "var(--rp-ink-soft)", fontSize: 13 }}>{`${rounded}d left`}</span>;
   };
 
   const filtered = products.filter(p =>

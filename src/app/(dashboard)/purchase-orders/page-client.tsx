@@ -7,10 +7,8 @@ import {
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
-import StatCard from "@/components/ui/StatCard";
 import Reveal from "@/components/ui/Reveal";
 import { authFetch } from "@/lib/authFetch";
-import { OrderDraftIcon, SendIcon, CheckCircleIcon } from "@shopify/polaris-icons";
 
 interface PO {
   id: string; po_number: string; status: string;
@@ -82,11 +80,25 @@ function PurchaseOrdersPageContent() {
         {error && <Banner tone="critical" title={error} onDismiss={() => setError(null)} />}
 
         {pos.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
-            <Reveal delay={0.05}><StatCard icon={OrderDraftIcon} label="Draft" value={counts.draft} tone="accent" sub="not yet sent" /></Reveal>
-            <Reveal delay={0.1}><StatCard icon={SendIcon} label="Sent to Supplier" value={counts.sent} tone="warn" sub="awaiting delivery" /></Reveal>
-            <Reveal delay={0.15}><StatCard icon={CheckCircleIcon} label="Received" value={counts.received} tone="good" sub="fulfilled orders" /></Reveal>
-          </div>
+          <Reveal delay={0.05}>
+            <div className="rp-manifest-strip">
+              <div className="rp-manifest-strip__cell">
+                <div className="rp-manifest-strip__label">Draft</div>
+                <div className="rp-manifest-strip__value">{counts.draft}</div>
+                <div className="rp-manifest-strip__sub">not yet sent</div>
+              </div>
+              <div className="rp-manifest-strip__cell">
+                <div className="rp-manifest-strip__label">Sent to Supplier</div>
+                <div className="rp-manifest-strip__value">{counts.sent}</div>
+                <div className="rp-manifest-strip__sub">awaiting delivery</div>
+              </div>
+              <div className="rp-manifest-strip__cell">
+                <div className="rp-manifest-strip__label">Received</div>
+                <div className="rp-manifest-strip__value">{counts.received}</div>
+                <div className="rp-manifest-strip__sub">fulfilled orders</div>
+              </div>
+            </div>
+          </Reveal>
         )}
 
         <Card>

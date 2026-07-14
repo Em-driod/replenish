@@ -3,22 +3,7 @@ import { upsertShop } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/server";
 import { shopify } from "@/lib/shopify";
 
-// Temporary debug breadcrumb — logs callback progress into webhook_events so
-// failures are visible without server log access. Remove once install works.
-async function trace(step: string, detail?: string) {
-  try {
-    const supabase = createAdminClient();
-    await supabase.from("webhook_events").insert({
-      topic: `oauth_trace:${step}`,
-      shopify_id: detail?.slice(0, 90) ?? null,
-    } as any);
-  } catch {
-    // never let tracing break the actual flow
-  }
-}
-
 export async function GET(req: NextRequest) {
-  await trace("hit", req.nextUrl.search);
   try {
     const { searchParams } = req.nextUrl;
     const code = searchParams.get("code");
@@ -26,19 +11,21 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get("state");
 
     if (!code || !rawShop) {
-      await trace("missing_code_or_shop");
       return NextResponse.json({ error: "Missing code or shop" }, { status: 400 });
     }
 
     const shop = shopify.utils.sanitizeShop(rawShop, false);
     if (!shop) {
-      await trace("invalid_shop", rawShop);
       return NextResponse.json({ error: "Invalid shop domain" }, { status: 400 });
     }
 
+    // CSRF protection: only enforced when our own /api/auth actually set the
+    // cookie. Shopify's managed-install flow (no legacy install flow) redirects
+    // straight to this callback without ever hitting /api/auth, so there's
+    // legitimately no cookie in that case — HMAC verification below is what
+    // actually proves the request came from Shopify either way.
     const expectedState = req.cookies.get("shopify_oauth_state")?.value;
     if (expectedState && state !== expectedState) {
-      await trace("state_mismatch");
       return NextResponse.json({ error: "Invalid OAuth state" }, { status: 401 });
     }
 
@@ -46,14 +33,12 @@ export async function GET(req: NextRequest) {
     try {
       isValidHmac = await shopify.utils.validateHmac(Object.fromEntries(searchParams));
     } catch (hmacErr) {
-      await trace("hmac_threw", hmacErr instanceof Error ? hmacErr.message : String(hmacErr));
+      console.error("HMAC validation error:", hmacErr);
       return NextResponse.json({ error: "HMAC validation error" }, { status: 401 });
     }
     if (!isValidHmac) {
-      await trace("hmac_invalid");
       return NextResponse.json({ error: "Invalid HMAC signature" }, { status: 401 });
     }
-    await trace("hmac_ok");
 
     const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: "POST",
@@ -67,10 +52,9 @@ export async function GET(req: NextRequest) {
 
     if (!tokenRes.ok) {
       const err = await tokenRes.text();
-      await trace("token_exchange_failed", `${tokenRes.status}: ${err}`);
+      console.error("Token exchange failed:", err);
       return NextResponse.json({ error: "Token exchange failed" }, { status: 500 });
     }
-    await trace("token_exchange_ok");
 
     const { access_token, scope } = await tokenRes.json();
 
@@ -81,9 +65,7 @@ export async function GET(req: NextRequest) {
       uninstalled_at: null,
     });
     if (upsertErr) {
-      await trace("upsert_shop_failed", JSON.stringify(upsertErr).slice(0, 90));
-    } else {
-      await trace("upsert_shop_ok", shop);
+      console.error("Failed to save shop:", upsertErr);
     }
 
     const supabase = createAdminClient();
@@ -94,14 +76,13 @@ export async function GET(req: NextRequest) {
 
     // Must be awaited, not fire-and-forget: Vercel's serverless runtime can
     // freeze/terminate the function right after the response is sent,
-    // killing any in-flight unawaited work — which is why webhook
-    // registration (including app/uninstalled) was silently never
-    // completing before.
+    // killing any in-flight unawaited work — this was previously causing
+    // webhook registration (including app/uninstalled) to silently never
+    // complete.
     try {
       await registerWebhooks(shop, access_token);
-      await trace("webhooks_registered", shop);
     } catch (webhookErr) {
-      await trace("webhook_registration_failed", webhookErr instanceof Error ? webhookErr.message : String(webhookErr));
+      console.error("Webhook registration failed:", webhookErr);
     }
 
     const redirectUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_API_KEY}`;
@@ -109,7 +90,6 @@ export async function GET(req: NextRequest) {
     response.cookies.delete("shopify_oauth_state");
     return response;
   } catch (error) {
-    await trace("uncaught_error", error instanceof Error ? `${error.message}` : String(error));
     console.error("OAuth callback error:", error);
     return NextResponse.json({ error: "OAuth failed" }, { status: 500 });
   }
@@ -154,7 +134,7 @@ async function registerWebhooks(shop: string, accessToken: string) {
 
   for (const result of results) {
     if (result.status === "rejected") {
-      await trace("webhook_topic_failed", result.reason instanceof Error ? result.reason.message : String(result.reason));
+      console.error("Webhook topic registration failed:", result.reason);
     }
   }
 }
